@@ -7,7 +7,7 @@ vim.opt.number = true
 vim.opt.scrolloff = 8 -- keep 8 lines visible above/below cursor (ThePrimagen tip)
 vim.opt.sidescrolloff = 8 -- same for horizontal scrolling
 vim.g.autoformat = false
-vim.opt.timeoutlen = 100 -- faster leader recog (was 200) — 100ms = instant, 50ms if you type fast
+vim.opt.timeoutlen = 300 -- reliable leader combos (was 100 too fast for <leader>ff) — 300=default, 200=fast, 100=misses if you type slow
 vim.opt.ttimeoutlen = 10 -- key code fast
 vim.opt.updatetime = 50 -- Primeagen 50ms (was 150) — faster CursorHold/diagnostics/which-key
 vim.opt.guicursor = "" -- Primeagen: no blinking cursor
