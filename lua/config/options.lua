@@ -13,7 +13,7 @@ vim.opt.updatetime = 50 -- Primeagen 50ms (was 150) — faster CursorHold/diagno
 vim.opt.guicursor = "" -- Primeagen: no blinking cursor
 vim.opt.hlsearch = false
 vim.opt.incsearch = true
-vim.opt.colorcolumn = "80" -- Primeagen 80-char guide (Rails/C++ line length)
+-- vim.opt.colorcolumn = "80" -- Primeagen 80-char guide (Rails/C++ line length)
 vim.opt.isfname:append("@-@")
 vim.opt.mouse = ""
 vim.opt.undofile = true
