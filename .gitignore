@@ -1,0 +1,30 @@
+# Neovim
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Lazy / plugin state (keep lockfiles, ignore caches)
+.lazy/
+data/
+
+# Logs / repro
+tt.*
+.tests
+doc/tags
+debug
+.repro
+foo.*
+*.log
+
+# Ruby LSP (project-specific, regenerated)
+.ruby-lsp/
+
+# Sessions / persistence
+.sessions/
+
+# Omarchy theme — committed as regular file, but restored as symlink by omarchy
+# Uncomment to ignore and let omarchy recreate symlink on each machine:
+# lua/plugins/theme.lua
+*.bak
+lua/config/lazy.lua.pre-lazyvim-bak
