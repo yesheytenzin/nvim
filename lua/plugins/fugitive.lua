@@ -17,6 +17,16 @@ return {
 
     local group = vim.api.nvim_create_augroup("ThePrimeagen_Fugitive", {})
 
+    -- show fugitive status at bottom as horizontal split (full width)
+    vim.api.nvim_create_autocmd("FileType", {
+      group = group,
+      pattern = "fugitive",
+      callback = function()
+        vim.cmd.wincmd("J")
+        vim.api.nvim_win_set_height(0, 15)
+      end,
+    })
+
     vim.api.nvim_create_autocmd("BufWinEnter", {
       group = group,
       pattern = "*",
