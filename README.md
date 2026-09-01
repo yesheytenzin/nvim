@@ -1,6 +1,6 @@
 # nvim
 
-Personal Neovim config — Rails + C++.
+Personal Neovim config.
 
 ```bash
 git clone https://github.com/yesheytenzin/nvim.git ~/.config/nvim && nvim
