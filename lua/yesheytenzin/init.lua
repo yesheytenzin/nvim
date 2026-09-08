@@ -1,5 +1,6 @@
 require("yesheytenzin.set")
 require("yesheytenzin.remap")
+require("yesheytenzin.ui")
 require("yesheytenzin.lazy_init")
 
 -- Personal behavior layered onto the Primeagen base.

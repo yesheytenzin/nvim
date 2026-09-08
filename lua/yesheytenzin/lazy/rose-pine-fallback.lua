@@ -1,8 +1,11 @@
--- Primeagen's actual color setup: Rose Pine with transparent editor surfaces.
+-- Use Rose Pine Moon when Omarchy is not installed or has no active theme.
+local omarchy_theme = vim.fn.expand("~/.local/state/omarchy/current/theme/neovim.lua")
+
 return {
   {
     "rose-pine/neovim",
-    name = "rose-pine",
+    name = "rose-pine-fallback",
+    enabled = vim.fn.filereadable(omarchy_theme) == 0,
     lazy = false,
     priority = 1000,
     config = function()
@@ -11,8 +14,6 @@ return {
         styles = { italic = false },
       })
       vim.cmd.colorscheme("rose-pine-moon")
-      vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
-      vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
     end,
   },
 }

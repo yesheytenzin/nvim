@@ -2,7 +2,7 @@
 return {
   {
     "stevearc/conform.nvim",
-    event = { "BufReadPre", "BufNewFile" },
+    event = "VeryLazy",
     opts = {
       formatters_by_ft = {
         ruby = { "rubocop" }, yaml = { "yamlfmt" }, json = { "jq" }, sql = { "sql_formatter" },
@@ -18,7 +18,7 @@ return {
   },
   {
     "neovim/nvim-lspconfig",
-    event = { "BufReadPre", "BufNewFile" },
+    event = "VeryLazy",
     dependencies = {
       "stevearc/conform.nvim", "mason-org/mason.nvim", "mason-org/mason-lspconfig.nvim",
       "hrsh7th/cmp-nvim-lsp", "j-hui/fidget.nvim",
@@ -63,10 +63,12 @@ return {
   {
     "WhoIsSethDaniel/mason-tool-installer.nvim",
     dependencies = { "mason-org/mason.nvim" },
+    event = "VeryLazy",
     opts = {
       ensure_installed = {
         "rubocop", "yamlfmt", "jq", "sql-formatter", "clang-format", "stylua",
       },
+      run_on_start = false,
     },
   },
 }

@@ -13,12 +13,11 @@ vim.keymap.set("n", "<leader>ch", "<cmd>ClangdSwitchSourceHeader<cr>", { desc = 
 
 -- Quick save/quit (classic, no snacks)
 vim.keymap.set("n", "<leader>w", "<cmd>w<cr>", { desc = "Save" })
-vim.keymap.set("n", "<leader>q", "<cmd>q<cr>", { desc = "Quit" })
+vim.keymap.set("n", "<leader>qq", "<cmd>q<cr>", { desc = "Quit" })
 
 
 -- File explorer: netrw (stock) — group <leader>f = file, <leader>h = harpoon
 vim.keymap.set("n", "<leader>e", "<cmd>Explore<cr>", { desc = "Netrw Explorer (current dir)" })
-vim.keymap.set("n", "<leader>E", "<cmd>Lexplore<cr>", { desc = "Netrw Left Explorer (stock)" })
 
 -- Primeagen telescope word-grep (requires telescope)
 vim.keymap.set("n", "<leader>pws", function()

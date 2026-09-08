@@ -1,7 +1,1 @@
-return {
-  { "rose-pine/neovim", name = "rose-pine" },
-  {
-    "LazyVim/LazyVim",
-    opts = { colorscheme = "rose-pine-dawn" },
-  },
-}
+/home/tenzin/.local/state/omarchy/current/theme/neovim.lua

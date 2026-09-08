@@ -45,13 +45,13 @@ return {
     end,
     keys = {
       -- core telescope (restored after pure-lazy refactor)
-      { "<leader>ff", "<cmd>Telescope find_files<cr>", desc = "Find Files" },
-      { "<leader>fg", "<cmd>Telescope live_grep<cr>", desc = "Grep" },
-      { "<leader>fb", "<cmd>Telescope buffers<cr>", desc = "Buffers" },
-      { "<leader>fh", "<cmd>Telescope help_tags<cr>", desc = "Help" },
-      { "<leader>fo", "<cmd>Telescope oldfiles<cr>", desc = "Old Files" },
+      { "<leader>pf", "<cmd>Telescope find_files<cr>", desc = "Find Files" },
+      { "<leader>pg", "<cmd>Telescope live_grep<cr>", desc = "Grep" },
+      { "<leader>pb", "<cmd>Telescope buffers<cr>", desc = "Buffers" },
+      { "<leader>ph", "<cmd>Telescope help_tags<cr>", desc = "Help" },
+      { "<leader>po", "<cmd>Telescope oldfiles<cr>", desc = "Old Files" },
       -- treesitter symbols: instant, accurate, no LSP wait
-      { "<leader>fs", "<cmd>Telescope treesitter<cr>", desc = "Symbols (Treesitter) — instant, no LSP" },
+      { "<leader>pt", "<cmd>Telescope treesitter<cr>", desc = "Symbols (Treesitter) — instant, no LSP" },
       {
         "<leader>fd",
         function()

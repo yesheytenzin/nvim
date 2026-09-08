@@ -37,7 +37,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
     map("<leader>ca", vim.lsp.buf.code_action, "Code action")
     map("<leader>ds", vim.lsp.buf.document_symbol, "Document symbols")
     map("<leader>ws", vim.lsp.buf.workspace_symbol, "Workspace symbol")
-    map("<C-h>", function() vim.lsp.buf.signature_help() end, "Signature help")
+    map("<leader>ls", function() vim.lsp.buf.signature_help() end, "Signature help")
     -- diagnostics: [d / ]d follow vim convention (prev / next)
     map("[d", function() vim.diagnostic.goto_prev() end, "Prev diagnostic")
     map("]d", function() vim.diagnostic.goto_next() end, "Next diagnostic")
