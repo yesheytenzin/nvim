@@ -19,24 +19,7 @@ return {
       })
     end,
   },
-  -- Enable Rails addon in ruby-lsp (understands routes, associations, AR magic)
-  {
-    "neovim/nvim-lspconfig",
-    opts = {
-      servers = {
-        ruby_lsp = {
-          settings = {},
-          -- ruby-lsp auto-detects Rails, but ensure addon enabled
-          init_options = {
-            enabledFeatures = {
-              diagnostics = true,
-            },
-          },
-        },
-      },
-    },
-  },
-  -- Breadcrumbs / outline - already in LazyVim via trouble + aerial optional
+  -- Optional breadcrumbs / outline.
   {
     "stevearc/aerial.nvim",
     optional = true,

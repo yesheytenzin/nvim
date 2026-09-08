@@ -7,7 +7,7 @@ return {
   cmd = { "Git", "G", "Gdiffsplit", "Gvdiffsplit", "Gread", "Gwrite", "Ggrep", "GMove", "GDelete", "GBrowse" },
   keys = {
     { "<leader>gs", "<cmd>Git<cr>", desc = "Git Status (Fugitive)" },
-    -- gu / gh are set globally in config() below (diffget), but declare here for which-key
+    -- gu / gh are set globally in config() below (diffget).
     { "gu", desc = "Diffget //2 (ours)" },
     { "gh", desc = "Diffget //3 (theirs)" },
   },

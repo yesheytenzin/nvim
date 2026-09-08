@@ -29,7 +29,6 @@ return {
         },
       },
       transformers = { "lowercase" },
-      style = { border = "none" },
     },
     keys = {
       { "<leader>ro", "<cmd>Other<cr>", desc = "Other (Rails alternate)" },

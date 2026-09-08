@@ -23,14 +23,7 @@ return {
     opts = {},
   },
 
-  -- 3) Fidget — LSP progress spinner (Primeagen lsp.lua)
-  {
-    "j-hui/fidget.nvim",
-    event = "LspAttach",
-    opts = {},
-  },
-
-  -- 4) Cloak — hide secrets in .env* (Primeagen cloak.lua)
+  -- 3) Cloak — hide secrets in .env* (Primeagen cloak.lua)
   {
     "laytan/cloak.nvim",
     event = "BufReadPre",
@@ -62,15 +55,6 @@ return {
             ["if"] = "@function.inner",
           },
         },
-      })
-      -- Primeagen auto-starts treesitter on BufEnter if not already active
-      local group = vim.api.nvim_create_augroup("ThePrimeagenTreesitter", { clear = true })
-      vim.api.nvim_create_autocmd({ "BufEnter", "FileType" }, {
-        group = group,
-        callback = function()
-          if vim.bo.buftype ~= "" then return end
-          pcall(vim.treesitter.start, 0)
-        end,
       })
     end,
   },

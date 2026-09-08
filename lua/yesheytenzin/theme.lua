@@ -1,12 +1,12 @@
 -- Omarchy theme bridge: lazy applies colorscheme from ~/.local/state/omarchy/current/theme/neovim.lua
--- Called via omarchy hook: nvim --server $sock --remote-send "<cmd>lua require('config.theme').reload()<CR>"
+-- Called via omarchy hook: nvim --server $sock --remote-send "<cmd>lua require('yesheytenzin.theme').reload()<CR>"
 -- Also auto-applied at startup via VeryLazy
 local M = {}
 
 local function get_omarchy_colorscheme()
-  local ok, spec = pcall(require, "plugins.theme")
+  local ok, spec = pcall(require, "yesheytenzin.lazy.theme")
   if not ok or type(spec) ~= "table" then return nil end
-  -- Omarchy neovim.lua is { { "theme/plugin", ... }, { "LazyVim/LazyVim", opts={colorscheme="..."} } }
+  -- Omarchy's generated theme file may include a disabled LazyVim marker.
   for _, s in ipairs(spec) do
     if s[1] == "LazyVim/LazyVim" and s.opts and s.opts.colorscheme then
       return s.opts.colorscheme
@@ -23,7 +23,7 @@ local function get_omarchy_colorscheme()
     if repo:find("catppuccin") then return "catppuccin" end
     if repo:find("tokyonight") then return "tokyonight-night" end
     if repo:find("gruvbox") then return "gruvbox" end
-    if repo:find("rose%-pine") then return "rose-pine" end
+    if repo:find("rose%-pine") then return "rose-pine-dawn" end
   end
   return nil
 end
@@ -57,9 +57,9 @@ end
 
 function M.reload()
   -- Reload theme spec from disk (omarchy just staged new neovim.lua)
-  package.loaded["plugins.theme"] = nil
+  package.loaded["yesheytenzin.lazy.theme"] = nil
   vim.schedule(function()
-    local ok, spec = pcall(require, "plugins.theme")
+    local ok, spec = pcall(require, "yesheytenzin.lazy.theme")
     if not ok then
       return
     end
@@ -139,7 +139,7 @@ do
         if err then return end
         if prev and curr and curr.mtime and prev.mtime and curr.mtime.sec ~= prev.mtime.sec then
           vim.schedule(function()
-            local ok, mod = pcall(require, "config.theme")
+            local ok, mod = pcall(require, "yesheytenzin.theme")
             if ok and mod and mod.reload then mod.reload() end
           end)
         end

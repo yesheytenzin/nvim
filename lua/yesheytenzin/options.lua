@@ -1,29 +1,19 @@
--- Options are automatically loaded before lazy.nvim startup
--- Default options that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/options.lua
--- Deferred to VeryLazy: saves /proc reads + OSC52 init at startup
-vim.api.nvim_create_autocmd("User", { pattern = "VeryLazy", once = true, callback = function() require("config.remote_clipboard").setup() end })
-vim.opt.relativenumber = true
-vim.opt.number = true
+-- Personal options layered under the Primeagen defaults in yesheytenzin/set.lua.
+vim.api.nvim_create_autocmd("User", { pattern = "VeryLazy", once = true, callback = function() require("yesheytenzin.remote_clipboard").setup() end })
 vim.opt.scrolloff = 8 -- keep 8 lines visible above/below cursor (ThePrimagen tip)
 vim.opt.sidescrolloff = 8 -- same for horizontal scrolling
 vim.g.autoformat = false
 vim.opt.timeoutlen = 300 -- reliable leader combos (was 100 too fast for <leader>ff) — 300=default, 200=fast, 100=misses if you type slow
 vim.opt.ttimeoutlen = 10 -- key code fast
-vim.opt.updatetime = 50 -- Primeagen 50ms (was 150) — faster CursorHold/diagnostics/which-key
-vim.opt.guicursor = "" -- Primeagen: no blinking cursor
-vim.opt.hlsearch = false
-vim.opt.incsearch = true
--- vim.opt.colorcolumn = "80" -- Primeagen 80-char guide (Rails/C++ line length)
-vim.opt.isfname:append("@-@")
 vim.opt.mouse = ""
 vim.opt.undofile = true
 vim.opt.undolevels = 10000
-vim.opt.undodir = vim.fn.stdpath("state") .. "/undo"
+local undodir = vim.fn.stdpath("state") .. "/undo"
+vim.opt.undodir = undodir
+vim.fn.mkdir(undodir, "p")
 vim.opt.ttyfast = true
 vim.opt.redrawtime = 1500
 vim.opt.clipboard = "unnamedplus"
-vim.o.winborder = "none" -- all floats borderless except blink (single)
-
 -- Silence optional provider warnings (not needed for Rails API + C++ ide)
 vim.g.loaded_node_provider = 0
 vim.g.loaded_perl_provider = 0

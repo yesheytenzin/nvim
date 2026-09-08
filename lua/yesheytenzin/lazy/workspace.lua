@@ -1,6 +1,5 @@
 -- Workspace/session management: persistence + project-local settings
 return {
-  -- LazyVim already includes persistence.nvim
   {
     "folke/persistence.nvim",
     keys = {
@@ -11,5 +10,4 @@ return {
     },
     opts = { options = vim.opt.sessionoptions:get() },
   },
-  -- Project-local .nvim.lua / .neoconf.json already supported via LazyVim
 }
