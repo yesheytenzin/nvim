@@ -12,6 +12,34 @@ vim.api.nvim_create_autocmd("FileType", {
   callback = function() vim.opt_local.shiftwidth = 2; vim.opt_local.tabstop = 2; vim.opt_local.expandtab = true end,
 })
 
+-- Auto-cd to the current buffer's project root (Gemfile/.git). vim.fs.root just checks
+-- that the marker exists, so this resolves correctly in a git worktree too (.git there
+-- is a file, not a directory, but it's still detected) — fixes pickers like Telescope
+-- searching the wrong directory when a buffer is opened outside nvim's launch cwd.
+vim.api.nvim_create_autocmd("BufEnter", {
+  pattern = "*",
+  callback = function(e)
+    if vim.bo[e.buf].buftype ~= "" or vim.bo[e.buf].filetype == "netrw" then return end
+    local name = vim.api.nvim_buf_get_name(e.buf)
+    if name == "" or name:match("^%w+://") then return end
+    local root = vim.fs.root(e.buf, { ".git", "Gemfile", "compile_commands.json", "CMakeLists.txt" })
+    if root and root ~= vim.fn.getcwd() then
+      vim.cmd.cd(root)
+    end
+  end,
+})
+
+-- netrw's stock "p" (preview) map is a trap: it's a bare single-key map (no <leader>),
+-- so it's easy to hit by accident while browsing, and it errors outright on directories
+-- ("sorry, cannot preview a directory such as <...>"). This workflow already has
+-- Telescope for previewing/finding files, so just remove the accident-prone map.
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "netrw",
+  callback = function(e)
+    pcall(vim.keymap.del, "n", "p", { buffer = e.buf })
+  end,
+})
+
 -- Primeagen: trim trailing whitespace on save (prevents rubocop/clang noise)
 local PrimeagenGroup = vim.api.nvim_create_augroup("ThePrimeagen", { clear = true })
 vim.api.nvim_create_autocmd("BufWritePre", {

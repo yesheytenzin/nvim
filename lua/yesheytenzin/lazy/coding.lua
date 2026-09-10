@@ -45,9 +45,16 @@ return {
         capabilities = capabilities,
         init_options = { enabledFeatures = { diagnostics = true } },
       })
+      -- automatic_enable defaults to true, which silently starts an LSP client for
+      -- EVERY Mason-installed tool that has a matching lspconfig entry — e.g. a
+      -- second, redundant "rubocop" LSP client on top of the RuboCop support
+      -- ruby_lsp already runs internally as its own addon. Disable it and enable
+      -- servers explicitly so only what's configured above actually attaches.
       require("mason-lspconfig").setup({
         ensure_installed = { "lua_ls" },
+        automatic_enable = false,
       })
+      vim.lsp.enable("lua_ls")
       vim.lsp.enable("clangd")
       vim.lsp.enable("ruby_lsp")
       vim.diagnostic.config({
