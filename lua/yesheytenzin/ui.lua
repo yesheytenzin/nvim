@@ -1,26 +1,7 @@
--- Keep built-in netrw and ColorColumn aligned with whichever theme is active.
-local function sync_theme_highlights()
-  vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
-  vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
+-- Stock Neovim UI: no custom highlight overrides
+-- Default UI appearance is preserved; no bg="none" transparency forcing,
+-- no custom ColorColumn/CursorLine links, and no netrw highlight tweaks here.
+-- Theming and highlight links are managed by the active colorscheme.
 
-  local links = {
-    ColorColumn = "CursorLine",
-    netrwDir = "Directory",
-    netrwClassify = "Delimiter",
-    netrwTreeBar = "NonText",
-    netrwExe = "String",
-    netrwSymLink = "Identifier",
-    netrwHide = "Comment",
-  }
-
-  for target, source in pairs(links) do
-    vim.api.nvim_set_hl(0, target, { link = source })
-  end
-end
-
-vim.api.nvim_create_autocmd("ColorScheme", {
-  group = vim.api.nvim_create_augroup("YesheytenzinUI", { clear = true }),
-  callback = sync_theme_highlights,
-})
-
-sync_theme_highlights()
+-- Ensure netrw uses its default highlights without interference.
+-- Any highlight links should be handled by the colorscheme, not forced here.

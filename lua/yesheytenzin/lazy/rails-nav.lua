@@ -2,7 +2,7 @@
 return {
   {
     "rgroli/other.nvim",
-    event = "VeryLazy",
+    -- No event: invoked manually via keys only, so skip the VeryLazy load.
     config = function(_, opts)
       require("other-nvim").setup(opts)
     end,

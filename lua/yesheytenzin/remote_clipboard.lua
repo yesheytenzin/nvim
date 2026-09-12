@@ -54,6 +54,21 @@ function M.setup()
     and vim.fn.executable("wl-copy") == 1
     and vim.fn.executable("wl-paste") == 1
 
+  local function sys_copy_async(cmd, lines)
+    -- Sync vim.fn.system() fork+exec on EVERY yank blocks typing for ms.
+    -- Fire-and-forget via jobstart instead (nvim reaps the child).
+    if type(lines) == "string" then
+      lines = vim.split(lines, "\n", { plain = true })
+    end
+    local job = vim.fn.jobstart(cmd)
+    if job <= 0 then
+      vim.fn.system(cmd, lines) -- rare fallback
+      return
+    end
+    pcall(vim.fn.chansend, job, lines)
+    pcall(vim.fn.chanclose, job, "stdin")
+  end
+
   local function copy(register)
     local emit = osc52.copy(register)
 
@@ -63,7 +78,7 @@ function M.setup()
         if register == "*" then
           cmd[#cmd + 1] = "--primary"
         end
-        vim.fn.system(cmd, lines)
+        sys_copy_async(cmd, lines)
       end
 
       if vim.g.omarchy_remote_clipboard_osc52 ~= false then

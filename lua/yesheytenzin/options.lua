@@ -3,8 +3,9 @@ vim.api.nvim_create_autocmd("User", { pattern = "VeryLazy", once = true, callbac
 vim.opt.scrolloff = 8 -- keep 8 lines visible above/below cursor (ThePrimagen tip)
 vim.opt.sidescrolloff = 8 -- same for horizontal scrolling
 vim.g.autoformat = false
-vim.opt.timeoutlen = 300 -- reliable leader combos (was 100 too fast for <leader>ff) — 300=default, 200=fast, 100=misses if you type slow
-vim.opt.ttimeoutlen = 10 -- key code fast
+vim.opt.timeout = true
+vim.opt.timeoutlen = 500 -- forgiving window for 3-key <leader> chords (space+p+f/s) incl. SSH/tmux jitter; 1000=nvim default, 300=too tight, misses when typed slow
+vim.opt.ttimeoutlen = 50 -- key-code wait: 10ms drops <M-1> etc over SSH/tmux jitter; 50 stays snappy
 vim.opt.mouse = ""
 vim.opt.undofile = true
 vim.opt.undolevels = 10000
@@ -23,24 +24,17 @@ vim.g.loaded_ruby_provider = 0
 vim.opt.synmaxcol = 300 -- don't highlight super long lines (C++ minified/generated)
 vim.opt.maxmempattern = 20000
 
--- netrw: default neovim UI (vanilla) - no overrides, banner + thin list
--- (removed custom tree/banner settings to use stock defaults)
+-- Stock Neovim UI: no rounding, no smoothscroll, default PUM height
+vim.opt.laststatus = 1 -- single statusline per window (stock default)
+vim.opt.splitbelow = true -- predictable splits, no viewport jumps
+vim.opt.splitright = true
+vim.opt.shortmess:append("c") -- no "match X of Y" spam during completion
 
-vim.api.nvim_create_autocmd("TextYankPost", {
-  group = vim.api.nvim_create_augroup("HighlightYank", {}),
-  pattern = "*",
-  callback = function()
-    vim.highlight.on_yank({ higroup = "IncSearch", timeout = 40 })
-  end,
-})
+-- Enable mouse for scrolling/resizing (stock behavior)
+vim.opt.mouse = "a"
 
--- Fully disable mouse: no click, no scroll, no drag
-vim.opt.mousescroll = "ver:0,hor:0"
-vim.api.nvim_create_autocmd({ "OptionSet" }, {
-  pattern = "mouse",
-  callback = function()
-    if vim.o.mouse ~= "" then
-      vim.opt.mouse = ""
-    end
-  end,
-})
+-- Stock signcolumn: auto (will appear when needed)
+vim.opt.signcolumn = "auto"
+
+-- No bounded completion menu - use default
+vim.opt.pumheight = 0

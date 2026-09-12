@@ -27,5 +27,21 @@ map("n", "<leader>qk", "<cmd>cnext<CR>zz", { desc = "Next quickfix item" })
 map("n", "<leader>k", "<cmd>lnext<CR>zz", { desc = "Next location item" })
 map("n", "<leader>j", "<cmd>lprev<CR>zz", { desc = "Previous location item" })
 map("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]], { desc = "Substitute word" })
-map("n", "<leader>x", "<cmd>!chmod +x %<CR>", { silent = true, desc = "Make executable" })
-map("n", "<leader><leader>", "<cmd>source %<CR>", { desc = "Source current file" })
+map("n", "<leader>x", function()
+  -- Only chmod real files: in netrw/dir buffers % is a directory listing.
+  if vim.bo.buftype ~= "" or vim.fn.filereadable(vim.fn.expand("%")) ~= 1 then
+    vim.notify("chmod +x: no file in current buffer", vim.log.levels.WARN)
+    return
+  end
+  vim.cmd("!chmod +x %")
+end, { silent = true, desc = "Make executable" })
+map("n", "<leader><leader>", function()
+  -- Sourcing arbitrary buffers (netrw dirs, markdown, ...) errors or stacks
+  -- duplicate autocmds. Only source vimscript/lua buffers.
+  local ft = vim.bo.filetype
+  if ft ~= "lua" and ft ~= "vim" then
+    vim.notify("Source: only lua/vim buffers (current: " .. ft .. ")", vim.log.levels.WARN)
+    return
+  end
+  vim.cmd("source %")
+end, { desc = "Source current file" })

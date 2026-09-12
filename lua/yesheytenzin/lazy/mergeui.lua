@@ -4,8 +4,9 @@ return {
   cmd = { "MergeUI", "MergeUIClose", "MergeUITakeLeft", "MergeUITakeRight", "MergeUITakeBoth", "MergeUITakeNone", "MergeUIToggle", "MergeUISingle", "MergeUITriple", "TriMerge", "TriMergeClose", "RubymineMerge" },
   keys = {
     { "<leader>gm", "<cmd>MergeUI<cr>", desc = "Merge: 3-pane (CURRENT | RESULT | INCOMING)" },
-    { "]c", desc = "Next conflict" },
-    { "[c", desc = "Prev conflict" },
+    -- NOTE: no bare `]c`/`[c` entries: a keys entry without an action creates a
+    -- GLOBAL placeholder that swallows the builtin diff motions ]c/[c
+    -- everywhere. Conflict navigation stays buffer-local via opts.keymaps.
   },
   opts = {
     view = "triple", -- "triple" (CURRENT|RESULT|INCOMING) or "single" (RESULT only) -- toggle with <leader>mt or :MergeUIToggle,

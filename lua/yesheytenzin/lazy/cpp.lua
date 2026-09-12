@@ -9,8 +9,10 @@ return {
       local group = vim.api.nvim_create_augroup("YesheytenzinTreesitter", { clear = true })
       vim.api.nvim_create_autocmd({ "BufEnter", "FileType" }, {
         group = group,
-        callback = function()
-          if vim.bo.buftype == "" then pcall(vim.treesitter.start, 0) end
+        callback = function(e)
+          if vim.bo[e.buf].buftype ~= "" then return end
+          if vim.b[e.buf].bigfile then return end -- syntax already off; skip parse cost
+          pcall(vim.treesitter.start, e.buf)
         end,
       })
       vim.api.nvim_create_autocmd("User", {

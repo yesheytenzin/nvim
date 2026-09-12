@@ -2,7 +2,8 @@
 -- All lazy-loaded — ~0 startup cost
 
 return {
-  -- 1) Undotree — <leader>u — Primeagen's most iconic plugin
+  -- 1) Undotree — <leader>ut — Primeagen's most iconic plugin (ut, not bare u:
+  -- bare <leader>u would collide with the <leader>ud diagnostics toggle)
   {
     "mbbill/undotree",
     cmd = "UndotreeToggle",
@@ -17,8 +18,8 @@ return {
     cmd = "Trouble",
     keys = {
       { "<leader>tt", function() require("trouble").toggle() end, desc = "Trouble toggle" },
-      { "[t", function() require("trouble").next({ skip_groups = true, jump = true }) end, desc = "Trouble next" },
-      { "]t", function() require("trouble").previous({ skip_groups = true, jump = true }) end, desc = "Trouble prev" },
+      { "]t", function() require("trouble").next({ skip_groups = true, jump = true }) end, desc = "Trouble next" },
+      { "[t", function() require("trouble").previous({ skip_groups = true, jump = true }) end, desc = "Trouble prev" },
     },
     opts = {},
   },

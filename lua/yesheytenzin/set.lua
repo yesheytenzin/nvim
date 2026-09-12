@@ -1,7 +1,6 @@
 -- Primeagen's practical editing defaults, plus this config's environment glue.
 require("yesheytenzin.options")
 
-vim.opt.guicursor = ""
 vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.tabstop = 4
@@ -15,9 +14,9 @@ vim.opt.breakindent = true -- wrapped lines keep the original line's indent
 vim.opt.swapfile = false
 vim.opt.backup = false
 vim.opt.termguicolors = true
-vim.opt.signcolumn = "yes"
+vim.opt.signcolumn = "auto"
 -- vim.opt.colorcolumn = "80"
 vim.opt.hlsearch = false
 vim.opt.incsearch = true
 vim.opt.isfname:append("@-@")
-vim.opt.updatetime = 50
+vim.opt.updatetime = 200 -- CursorHold cadence: 50 fires LSP/fidget handlers 20x/sec; 200 stays snappy

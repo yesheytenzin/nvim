@@ -80,6 +80,12 @@ function M.reload()
       return
     end
 
+    -- Boot already applied this exact theme synchronously (see lazy_init):
+    -- re-clearing highlights here would flash an unstyled frame post-launch.
+    if vim.g.yesheytenzin_applied_theme == colorscheme then
+      return
+    end
+
     -- Clear old highlights (needed for light/dark switches)
     vim.cmd("highlight clear")
     if vim.fn.exists("syntax_on") == 1 then vim.cmd("syntax reset") end
@@ -101,9 +107,13 @@ function M.reload()
       end
     end
 
-    apply_colorscheme(colorscheme, theme_plugin)
+    if apply_colorscheme(colorscheme, theme_plugin) then
+      vim.g.yesheytenzin_applied_theme = colorscheme
+    end
     vim.defer_fn(function()
-      pcall(vim.cmd.colorscheme, colorscheme)
+      if pcall(vim.cmd.colorscheme, colorscheme) then
+        vim.g.yesheytenzin_applied_theme = colorscheme
+      end
       vim.cmd("redraw!")
       -- Reload transparency if user had it (optional)
       local transp = vim.fn.stdpath("config") .. "/plugin/after/transparency.lua"
@@ -123,8 +133,11 @@ vim.api.nvim_create_autocmd("User", {
 
 
 
--- Ensure nvim has a server socket so omarchy hook can remote-send (fallback)
+-- Ensure nvim has a server socket so omarchy hook can remote-send (fallback).
+-- The run dir may not exist (then serverstart fails with "operation not
+-- permitted" spam in nvim.log), so create it first.
 if vim.v.servername == "" or vim.v.servername == nil then
+  pcall(vim.fn.mkdir, vim.fn.stdpath("run"), "p")
   pcall(vim.fn.serverstart, vim.fn.stdpath("run") .. "/nvim." .. vim.fn.getpid() .. ".0")
 end
 

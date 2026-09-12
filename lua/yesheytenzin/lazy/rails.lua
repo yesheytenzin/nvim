@@ -6,15 +6,20 @@ return {
     init = function()
       -- vim-rails provides :A :R :Emodel :Econtroller :Emigration etc
       -- Recognizes Feedbacks::Create, MutationService nesting, Zeitwerk paths
+      -- Augroup + buffer-local: without these the maps leak globally after the
+      -- first ruby buffer and the autocmd stacks duplicates on every reload.
+      local group = vim.api.nvim_create_augroup("YesheytenzinRailsMaps", { clear = true })
       vim.api.nvim_create_autocmd("FileType", {
+        group = group,
         pattern = { "ruby", "eruby" },
-        callback = function()
-          vim.keymap.set("n", "<leader>ra", "<cmd>A<cr>", { desc = "Rails Alternate (model<->spec)", buffer = true })
-          vim.keymap.set("n", "<leader>rA", "<cmd>R<cr>", { desc = "Rails Related", buffer = true })
-          vim.keymap.set("n", "<leader>rm", "<cmd>Emigration<cr>", { desc = "Rails Migration" })
-          vim.keymap.set("n", "<leader>rc", "<cmd>Econtroller<cr>", { desc = "Rails Controller" })
-          vim.keymap.set("n", "<leader>rM", "<cmd>Emodel<cr>", { desc = "Rails Model" })
-          vim.keymap.set("n", "<leader>rv", "<cmd>Eview<cr>", { desc = "Rails View" })
+        callback = function(e)
+          local opts = { buffer = e.buf }
+          vim.keymap.set("n", "<leader>ra", "<cmd>A<cr>", vim.tbl_extend("force", opts, { desc = "Rails Alternate (model<->spec)" }))
+          vim.keymap.set("n", "<leader>rA", "<cmd>R<cr>", vim.tbl_extend("force", opts, { desc = "Rails Related" }))
+          vim.keymap.set("n", "<leader>rm", "<cmd>Emigration<cr>", vim.tbl_extend("force", opts, { desc = "Rails Migration" }))
+          vim.keymap.set("n", "<leader>rc", "<cmd>Econtroller<cr>", vim.tbl_extend("force", opts, { desc = "Rails Controller" }))
+          vim.keymap.set("n", "<leader>rM", "<cmd>Emodel<cr>", vim.tbl_extend("force", opts, { desc = "Rails Model" }))
+          vim.keymap.set("n", "<leader>rv", "<cmd>Eview<cr>", vim.tbl_extend("force", opts, { desc = "Rails View" }))
         end,
       })
     end,
@@ -22,7 +27,7 @@ return {
   -- Optional breadcrumbs / outline.
   {
     "stevearc/aerial.nvim",
-    optional = true,
+    -- No event: keys-only loading keeps it out of the boot path entirely.
     keys = {
       { "<leader>co", "<cmd>AerialToggle!<cr>", desc = "Outline (Aerial)" },
     },

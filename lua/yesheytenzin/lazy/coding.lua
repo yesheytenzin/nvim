@@ -2,7 +2,16 @@
 return {
   {
     "stevearc/conform.nvim",
-    event = "VeryLazy",
+    -- No VeryLazy: autoformat is off and formatting is manual, so loading the
+    -- whole formatter stack on every boot is pure overhead. Loads on demand.
+    cmd = { "ConformInfo" },
+    keys = {
+      {
+        "<leader>cF",
+        function() require("conform").format({ async = true, lsp_fallback = true }) end,
+        desc = "Format buffer",
+      },
+    },
     opts = {
       formatters_by_ft = {
         ruby = { "rubocop" }, yaml = { "yamlfmt" }, json = { "jq" }, sql = { "sql_formatter" },
@@ -65,15 +74,19 @@ return {
   },
   {
     "mason-org/mason.nvim",
+    cmd = { "Mason", "MasonInstall", "MasonUninstall", "MasonUninstallAll", "MasonLog" },
     opts = {},
   },
   {
     "WhoIsSethDaniel/mason-tool-installer.nvim",
     dependencies = { "mason-org/mason.nvim" },
-    event = "VeryLazy",
+    -- No VeryLazy: run_on_start is false so boot load does zero work.
+    -- Loads only when explicitly managing tools.
+    cmd = { "MasonToolsInstall", "MasonToolsUpdate", "MasonToolsClean" },
     opts = {
       ensure_installed = {
         "rubocop", "yamlfmt", "jq", "sql-formatter", "clang-format", "stylua",
+        "clangd",
       },
       run_on_start = false,
     },

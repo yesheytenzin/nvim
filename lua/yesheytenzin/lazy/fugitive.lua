@@ -7,9 +7,10 @@ return {
   cmd = { "Git", "G", "Gdiffsplit", "Gvdiffsplit", "Gread", "Gwrite", "Ggrep", "GMove", "GDelete", "GBrowse" },
   keys = {
     { "<leader>gs", "<cmd>Git<cr>", desc = "Git Status (Fugitive)" },
-    -- gu / gh are set globally in config() below (diffget).
-    { "gu", desc = "Diffget //2 (ours)" },
-    { "gh", desc = "Diffget //3 (theirs)" },
+    -- NOTE: no `gu`/`gh` entries here: a keys entry without an action creates a
+    -- GLOBAL placeholder that swallows Vim's builtin `gu` lowercase operator
+    -- (guiw, guu, ...) everywhere. diffget maps are buffer-local, applied only
+    -- while 'diff' is set (see config() below).
   },
   config = function()
     -- <leader>gs — Primeagen's main toggle (vim.cmd.Git opens :Git status)
@@ -36,17 +37,20 @@ return {
         end
         local bufnr = vim.api.nvim_get_current_buf()
         local opts = { buffer = bufnr, remap = false, silent = true }
-        vim.keymap.set("n", "<leader>p", function()
+        -- All under <leader>g (git): bare <leader>p would shadow the global
+        -- <leader>p* prefix (pf/ps/pg/...) inside fugitive buffers, and bare
+        -- <leader>t collides with global <leader>tt (trouble).
+        vim.keymap.set("n", "<leader>gp", function()
           vim.cmd.Git("push")
         end, vim.tbl_extend("force", opts, { desc = "Git push" }))
 
         -- rebase always (Primeagen rule)
-        vim.keymap.set("n", "<leader>P", function()
+        vim.keymap.set("n", "<leader>gP", function()
           vim.cmd.Git({ "pull", "--rebase" })
         end, vim.tbl_extend("force", opts, { desc = "Git pull --rebase" }))
 
         -- push -u origin with prompt for branch name
-        vim.keymap.set("n", "<leader>t", ":Git push -u origin ", vim.tbl_extend("force", opts, { desc = "Git push -u origin ..." }))
+        vim.keymap.set("n", "<leader>gt", ":Git push -u origin ", vim.tbl_extend("force", opts, { desc = "Git push -u origin ..." }))
       end,
     })
 

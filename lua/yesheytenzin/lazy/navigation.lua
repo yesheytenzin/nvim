@@ -52,6 +52,32 @@ return {
       { "<leader>po", "<cmd>Telescope oldfiles<cr>", desc = "Old Files" },
       -- treesitter symbols: instant, accurate, no LSP wait
       { "<leader>pt", "<cmd>Telescope treesitter<cr>", desc = "Symbols (Treesitter) — instant, no LSP" },
+      -- Primeagen word-grep group: kept here (not keymaps.lua) so lazy.nvim
+      -- registers them BEFORE telescope loads. Eager vim.keymap.set versions
+      -- fail on a fresh `nvim .` because telescope isn't on the rtp yet.
+      {
+        "<leader>ps",
+        function()
+          local q = vim.fn.input("Grep > ")
+          if q == nil or q == "" then return end
+          require("telescope.builtin").grep_string({ search = q })
+        end,
+        desc = "Grep prompt",
+      },
+      {
+        "<leader>pws",
+        function()
+          require("telescope.builtin").grep_string({ search = vim.fn.expand("<cword>") })
+        end,
+        desc = "Grep word under cursor",
+      },
+      {
+        "<leader>pWs",
+        function()
+          require("telescope.builtin").grep_string({ search = vim.fn.expand("<cWORD>") })
+        end,
+        desc = "Grep WORD under cursor",
+      },
       {
         "<leader>fd",
         function()
