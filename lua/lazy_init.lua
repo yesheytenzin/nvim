@@ -15,7 +15,7 @@ end
 
 vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({
-  spec = { { import = "yesheytenzin.lazy" } },
+  spec = { { import = "plugins" } },
   defaults = { lazy = true, version = false },
   install = { colorscheme = { "rose-pine-dawn" } },
   change_detection = { enabled = false, notify = false },
@@ -34,7 +34,7 @@ require("lazy").setup({
 -- hot-reload afterwards.
 do
   local colorscheme
-  local ok, spec = pcall(require, "yesheytenzin.lazy.theme")
+  local ok, spec = pcall(require, "plugins.theme")
   if ok and type(spec) == "table" then
     for _, s in ipairs(spec) do
       if s[1] == "LazyVim/LazyVim" and s.opts and s.opts.colorscheme then
@@ -52,7 +52,7 @@ do
       pcall(loader.colorscheme, colorscheme)
     end
     if pcall(vim.cmd.colorscheme, colorscheme) then
-      vim.g.yesheytenzin_applied_theme = colorscheme
+      vim.g.applied_colorscheme = colorscheme
     end
   end
 end

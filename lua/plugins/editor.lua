@@ -1,5 +1,6 @@
--- Primeagen extras: curated high-ROI plugins from ThePrimeagen/init.lua
--- All lazy-loaded — ~0 startup cost
+-- Editor enhancements, Primeagen-curated (ThePrimeagen/init.lua):
+-- undo tree, diagnostics list, secret cloaking, textobjects, zen mode.
+-- Named by role, not author. All lazy-loaded — ~0 startup cost.
 
 return {
   -- 1) Undotree — <leader>ut — Primeagen's most iconic plugin (ut, not bare u:
@@ -41,7 +42,7 @@ return {
     },
   },
 
-  -- 5) Treesitter textobjects — af/if for functions (Primeagen treesitter.lua)
+  -- 4) Treesitter textobjects — af/if for functions (Primeagen treesitter.lua)
   {
     "nvim-treesitter/nvim-treesitter-textobjects",
     event = { "BufReadPost", "BufNewFile" },
@@ -60,7 +61,7 @@ return {
     end,
   },
 
-  -- 6) Zen-mode — <leader>zz / <leader>zZ (Primeagen zenmode.lua)
+  -- 5) Zen-mode — <leader>zz / <leader>zZ (Primeagen zenmode.lua)
   {
     "folke/zen-mode.nvim",
     cmd = "ZenMode",

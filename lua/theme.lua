@@ -1,10 +1,10 @@
 -- Omarchy theme bridge: lazy applies colorscheme from ~/.local/state/omarchy/current/theme/neovim.lua
--- Called via omarchy hook: nvim --server $sock --remote-send "<cmd>lua require('yesheytenzin.theme').reload()<CR>"
+-- Called via omarchy hook: nvim --server $sock --remote-send "<cmd>lua require('theme').reload()<CR>"
 -- Also auto-applied at startup via VeryLazy
 local M = {}
 
 local function get_omarchy_colorscheme()
-  local ok, spec = pcall(require, "yesheytenzin.lazy.theme")
+  local ok, spec = pcall(require, "plugins.theme")
   if not ok or type(spec) ~= "table" then return nil end
   -- Omarchy's generated theme file may include a disabled LazyVim marker.
   for _, s in ipairs(spec) do
@@ -57,9 +57,9 @@ end
 
 function M.reload()
   -- Reload theme spec from disk (omarchy just staged new neovim.lua)
-  package.loaded["yesheytenzin.lazy.theme"] = nil
+  package.loaded["plugins.theme"] = nil
   vim.schedule(function()
-    local ok, spec = pcall(require, "yesheytenzin.lazy.theme")
+    local ok, spec = pcall(require, "plugins.theme")
     if not ok then
       return
     end
@@ -82,7 +82,7 @@ function M.reload()
 
     -- Boot already applied this exact theme synchronously (see lazy_init):
     -- re-clearing highlights here would flash an unstyled frame post-launch.
-    if vim.g.yesheytenzin_applied_theme == colorscheme then
+    if vim.g.applied_colorscheme == colorscheme then
       return
     end
 
@@ -108,11 +108,11 @@ function M.reload()
     end
 
     if apply_colorscheme(colorscheme, theme_plugin) then
-      vim.g.yesheytenzin_applied_theme = colorscheme
+      vim.g.applied_colorscheme = colorscheme
     end
     vim.defer_fn(function()
       if pcall(vim.cmd.colorscheme, colorscheme) then
-        vim.g.yesheytenzin_applied_theme = colorscheme
+        vim.g.applied_colorscheme = colorscheme
       end
       vim.cmd("redraw!")
       -- Reload transparency if user had it (optional)
@@ -152,7 +152,7 @@ do
         if err then return end
         if prev and curr and curr.mtime and prev.mtime and curr.mtime.sec ~= prev.mtime.sec then
           vim.schedule(function()
-            local ok, mod = pcall(require, "yesheytenzin.theme")
+            local ok, mod = pcall(require, "theme")
             if ok and mod and mod.reload then mod.reload() end
           end)
         end

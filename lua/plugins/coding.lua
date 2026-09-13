@@ -1,4 +1,43 @@
--- Formatting and the single LSP configuration used by this plain lazy.nvim setup.
+-- Language intelligence in one module: LSP servers, attach keymaps,
+-- diagnostics, formatting, and incremental rename. Previously the attach
+-- keymaps lived in autocmds.lua and rename in navigation.lua — same
+-- concern, now one place.
+
+-- Buffer-local LSP keymaps. Top-level (not inside a spec's config) so they
+-- exist from startup, exactly as before: LspAttach can fire for buffers
+-- opened before VeryLazy finishes.
+-- NOTE: <leader>w (save) and <leader>d (delete) are bare GLOBAL maps, so in
+-- LSP buffers vim waits timeoutlen to disambiguate <leader>w vs <leader>ws
+-- (and <leader>d vs <leader>ds). That short pause on save/delete in code
+-- buffers is the price of keeping Primeagen's ws/ds mnemonics.
+local LspGroup = vim.api.nvim_create_augroup("ConfigLsp", { clear = true })
+vim.api.nvim_create_autocmd("LspAttach", {
+  group = LspGroup,
+  callback = function(e)
+    local map = function(lhs, rhs, desc)
+      vim.keymap.set("n", lhs, rhs, { buffer = e.buf, desc = desc })
+    end
+    map("gd", vim.lsp.buf.definition, "Goto definition")
+    map("gD", vim.lsp.buf.declaration, "Goto declaration")
+    map("gi", vim.lsp.buf.implementation, "Goto implementation")
+    map("gy", vim.lsp.buf.type_definition, "Goto type definition")
+    map("gr", vim.lsp.buf.references, "References")
+    map("K", vim.lsp.buf.hover, "Hover")
+    map("<leader>rn", vim.lsp.buf.rename, "Rename")
+    map("<leader>ca", vim.lsp.buf.code_action, "Code action")
+    map("<leader>ds", vim.lsp.buf.document_symbol, "Document symbols")
+    map("<leader>ws", vim.lsp.buf.workspace_symbol, "Workspace symbol")
+    map("<leader>ls", function() vim.lsp.buf.signature_help() end, "Signature help")
+    local client = vim.lsp.get_client_by_id(e.data.client_id)
+    if client and client.name == "clangd" then
+      map("<leader>ch", "<cmd>ClangdSwitchSourceHeader<cr>", "C++ Switch Header/Source")
+    end
+    -- diagnostics: [d / ]d follow vim convention (prev / next)
+    map("[d", function() vim.diagnostic.goto_prev() end, "Prev diagnostic")
+    map("]d", function() vim.diagnostic.goto_next() end, "Next diagnostic")
+  end,
+})
+
 return {
   {
     "stevearc/conform.nvim",
@@ -90,5 +129,22 @@ return {
       },
       run_on_start = false,
     },
+  },
+  -- Incremental rename preview — RubyMine's inline rename (moved here from
+  -- navigation.lua: it is LSP-driven, not file-finding).
+  {
+    "smjonas/inc-rename.nvim",
+    cmd = "IncRename",
+    keys = {
+      {
+        "<leader>cR",
+        function()
+          return ":IncRename " .. vim.fn.expand("<cword>")
+        end,
+        expr = true,
+        desc = "Rename (inc-rename preview)",
+      },
+    },
+    opts = {},
   },
 }

@@ -1,4 +1,6 @@
--- Project autocmds: Rails, C++, diagnostics, and Primeagen's save behavior.
+-- Project autocmds: filetype indents, auto-cd, netrw, big-file guard, and
+-- Primeagen's trim-on-save. LSP keymaps live with the LSP spec in
+-- plugins/coding.lua (same concern, one place).
 
 -- Ruby/Rails API: 2-space indent, no wrap
 vim.api.nvim_create_autocmd("FileType", {
@@ -18,7 +20,7 @@ vim.api.nvim_create_autocmd("FileType", {
 -- searching the wrong directory when a buffer is opened outside nvim's launch cwd.
 -- Window-local (:lcd, not :cd): a global cd flaps under multi-window splits and
 -- fights Telescope/harpoon cwd expectations.
-local AutoCdGroup = vim.api.nvim_create_augroup("YesheytenzinAutoCd", { clear = true })
+local AutoCdGroup = vim.api.nvim_create_augroup("ConfigAutoCd", { clear = true })
 vim.api.nvim_create_autocmd("BufEnter", {
   group = AutoCdGroup,
   pattern = "*",
@@ -48,7 +50,7 @@ vim.api.nvim_create_autocmd("FileType", {
 -- Big-file guard (>1MB): regex syntax + treesitter + relativenumber on huge
 -- files (minified/generated) are the classic scroll/edit stutter culprits.
 -- One stat syscall per open; flags consumed by treesitter/trim below.
-local BigFileGroup = vim.api.nvim_create_augroup("YesheytenzinBigFile", { clear = true })
+local BigFileGroup = vim.api.nvim_create_augroup("ConfigBigFile", { clear = true })
 vim.api.nvim_create_autocmd("BufReadPre", {
   group = BigFileGroup,
   pattern = "*",
@@ -81,38 +83,6 @@ vim.api.nvim_create_autocmd("BufWritePre", {
     if vim.b[e.buf].bigfile then return end
     if vim.bo[e.buf].buftype ~= "" then return end
     vim.cmd([[silent! keeppatterns keepjumps %s/\s\+$//e]])
-  end,
-})
-
--- LspAttach keymaps (simple g-family)
--- NOTE: <leader>w (save) and <leader>d (delete) are bare GLOBAL maps, so in
--- LSP buffers vim waits timeoutlen to disambiguate <leader>w vs <leader>ws
--- (and <leader>d vs <leader>ds). That short pause on save/delete in code
--- buffers is the price of keeping Primeagen's ws/ds mnemonics.
-vim.api.nvim_create_autocmd("LspAttach", {
-  group = PrimeagenGroup,
-  callback = function(e)
-    local map = function(lhs, rhs, desc)
-      vim.keymap.set("n", lhs, rhs, { buffer = e.buf, desc = desc })
-    end
-    map("gd", vim.lsp.buf.definition, "Goto definition")
-    map("gD", vim.lsp.buf.declaration, "Goto declaration")
-    map("gi", vim.lsp.buf.implementation, "Goto implementation")
-    map("gy", vim.lsp.buf.type_definition, "Goto type definition")
-    map("gr", vim.lsp.buf.references, "References")
-    map("K", vim.lsp.buf.hover, "Hover")
-    map("<leader>rn", vim.lsp.buf.rename, "Rename")
-    map("<leader>ca", vim.lsp.buf.code_action, "Code action")
-    map("<leader>ds", vim.lsp.buf.document_symbol, "Document symbols")
-    map("<leader>ws", vim.lsp.buf.workspace_symbol, "Workspace symbol")
-    map("<leader>ls", function() vim.lsp.buf.signature_help() end, "Signature help")
-    local client = vim.lsp.get_client_by_id(e.data.client_id)
-    if client and client.name == "clangd" then
-      map("<leader>ch", "<cmd>ClangdSwitchSourceHeader<cr>", "C++ Switch Header/Source")
-    end
-    -- diagnostics: [d / ]d follow vim convention (prev / next)
-    map("[d", function() vim.diagnostic.goto_prev() end, "Prev diagnostic")
-    map("]d", function() vim.diagnostic.goto_next() end, "Next diagnostic")
   end,
 })
 

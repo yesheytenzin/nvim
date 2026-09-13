@@ -6,7 +6,7 @@ return {
     build = ":TSUpdate",
     init = function()
       local parsers = { "c", "cpp", "cmake", "make", "ruby", "yaml", "json", "bash", "regex", "sql" }
-      local group = vim.api.nvim_create_augroup("YesheytenzinTreesitter", { clear = true })
+      local group = vim.api.nvim_create_augroup("ConfigTreesitter", { clear = true })
       vim.api.nvim_create_autocmd({ "BufEnter", "FileType" }, {
         group = group,
         callback = function(e)

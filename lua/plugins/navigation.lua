@@ -1,4 +1,4 @@
--- RubyMine-style "Search Everywhere" polish: faster/accurate finding (fixed: telescope now works without fzf-native)
+-- Search & outline: Telescope pickers plus a code outline.
 return {
   -- 1) Make telescope filtering as fast & accurate as RubyMine's index (fzf-native optional)
   {
@@ -105,20 +105,16 @@ return {
       },
     },
   },
-  -- 2) Incremental rename preview — RubyMine's inline rename
+  -- 2) Outline / breadcrumbs (moved here from rails.lua: not Rails-specific)
   {
-    "smjonas/inc-rename.nvim",
-    cmd = "IncRename",
+    "stevearc/aerial.nvim",
+    -- No event: keys-only loading keeps it out of the boot path entirely.
     keys = {
-      {
-        "<leader>cR",
-        function()
-          return ":IncRename " .. vim.fn.expand("<cword>")
-        end,
-        expr = true,
-        desc = "Rename (inc-rename preview)",
-      },
+      { "<leader>co", "<cmd>AerialToggle!<cr>", desc = "Outline (Aerial)" },
     },
-    opts = {},
+    opts = {
+      layout = { max_width = { 40, 0.2 }, width = nil, min_width = 20 },
+      filter_kind = false,
+    },
   },
 }

@@ -111,4 +111,12 @@ function M.setup()
   }
 end
 
+-- Deferred setup owns its seam here (not in options.lua): requiring this
+-- module registers the one-shot hook, and setup() runs on VeryLazy.
+vim.api.nvim_create_autocmd("User", {
+  pattern = "VeryLazy",
+  once = true,
+  callback = function() require("remote_clipboard").setup() end,
+})
+
 return M
