@@ -56,3 +56,23 @@ do
     end
   end
 end
+
+-- Conceal the per-plugin keybind triggers in the :Lazy home view.
+-- lazy.nvim hard-codes the trigger column (keys/cmd/event/ft) with no toggle,
+-- so paint LazyReasonKeys in the float background instead. Safe against
+-- lazy's own highlight pass (it uses `default = true`, which never overrides
+-- an explicitly set group). Recomputed on ColorScheme so Omarchy
+-- light/dark switches keep it invisible. Known artifact: the cursor row's
+-- CursorLine background still reveals the keys on the focused line only.
+do
+  local group = vim.api.nvim_create_augroup("ConfigLazyUi", { clear = true })
+  local function conceal_lazy_keys()
+    local bg = vim.api.nvim_get_hl(0, { name = "NormalFloat" }).bg
+      or vim.api.nvim_get_hl(0, { name = "Normal" }).bg
+    if bg then
+      vim.api.nvim_set_hl(0, "LazyReasonKeys", { fg = bg, bg = bg })
+    end
+  end
+  conceal_lazy_keys()
+  vim.api.nvim_create_autocmd("ColorScheme", { group = group, callback = conceal_lazy_keys })
+end
