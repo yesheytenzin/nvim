@@ -2,15 +2,10 @@
 -- Primeagen's trim-on-save. LSP keymaps live with the LSP spec in
 -- plugins/coding.lua (same concern, one place).
 
--- Ruby/Rails API: 2-space indent, no wrap
+-- Ruby/Rails API: 2-space indent, no wrap. Everything else keeps the global
+-- 4-space default from options.lua.
 vim.api.nvim_create_autocmd("FileType", {
   pattern = { "ruby", "eruby", "yaml" },
-  callback = function() vim.opt_local.shiftwidth = 2; vim.opt_local.tabstop = 2; vim.opt_local.expandtab = true end,
-})
-
--- C/C++: 2-space (or 4) - clangd will format, keep 2 for consistency with Rails
-vim.api.nvim_create_autocmd("FileType", {
-  pattern = { "c", "cpp" },
   callback = function() vim.opt_local.shiftwidth = 2; vim.opt_local.tabstop = 2; vim.opt_local.expandtab = true end,
 })
 
