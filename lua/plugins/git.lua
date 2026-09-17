@@ -1,4 +1,5 @@
--- Version control in one module: fugitive (status, push/pull, diffget) plus
+-- Version control in one module: fugitive (status, push/pull, diffget),
+-- diffview (side-by-side working-tree/commit/file-history viewer) plus
 -- mergeui (RubyMine-style 3-pane merge). Previously two files, one concern.
 return {
   -- vim-fugitive: ThePrimeagen style
@@ -93,6 +94,33 @@ return {
           end
         end,
       })
+    end,
+  },
+  -- diffview.nvim: single-tabpage, side-by-side diff viewer for the working
+  -- tree, arbitrary revs, and a porcelain file history. Complements fugitive
+  -- (line-level :Gdiffsplit, staging) with a file-tree-first review surface.
+  -- All commands are uppercase and namespaced, so lazy-loading via `keys`/`cmd`
+  -- keeps startup free of cost. No plenary/devicons dependency.
+  {
+    "sindrets/diffview.nvim",
+    cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewToggleFiles", "DiffviewFocusFiles", "DiffviewRefresh", "DiffviewFileHistory", "DiffviewLog" },
+    keys = {
+      { "<leader>gd", "<cmd>DiffviewOpen<cr>", desc = "Diff: working tree vs index" },
+      { "<leader>gD", "<cmd>DiffviewClose<cr>", desc = "Diff: close view" },
+      { "<leader>gh", "<cmd>DiffviewFileHistory<cr>", desc = "Diff: branch file history" },
+      { "<leader>gH", "<cmd>DiffviewFileHistory %<cr>", desc = "Diff: current file history" },
+    },
+    opts = {
+      -- Smarter intra-line highlighting for changed regions.
+      enhanced_diff_hl = true,
+      -- Keep the file panel on the left; diff2_horizontal splits stacked.
+      view = {
+        default = { layout = "diff2_horizontal" },
+        file_history = { layout = "diff2_horizontal" },
+      },
+    },
+    config = function(_, opts)
+      require("diffview").setup(opts)
     end,
   },
   -- mergeui.nvim: RubyMine-style 3-pane merge (CURRENT | RESULT | INCOMING) — renamed from tri-merge
