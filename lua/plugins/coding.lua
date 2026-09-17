@@ -66,7 +66,10 @@ return {
   },
   {
     "neovim/nvim-lspconfig",
-    event = "VeryLazy",
+    -- Load only when a file we actually have a server for is opened, not on
+    -- every boot. vim.lsp.enable() re-runs FileType detection for already-open
+    -- buffers (nvim runtime lsp.lua), so the first code file still attaches.
+    ft = { "lua", "ruby", "eruby", "c", "cpp", "objc", "objcpp" },
     dependencies = {
       "stevearc/conform.nvim", "mason-org/mason.nvim", "mason-org/mason-lspconfig.nvim",
       "hrsh7th/cmp-nvim-lsp", "j-hui/fidget.nvim",

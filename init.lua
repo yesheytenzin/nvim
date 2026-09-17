@@ -12,12 +12,6 @@ require("autocmds")
 -- Keep the Omarchy theme bridge loaded after the plugin manager is ready.
 pcall(require, "theme")
 
-vim.filetype.add({
-  extension = {
-    templ = "templ",
-  },
-})
-
 -- Dev helper: :lua R("keymaps") to hot-reload one module.
 function R(name)
   require("plenary.reload").reload_module(name)

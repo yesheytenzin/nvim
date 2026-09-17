@@ -38,7 +38,9 @@ map("n", "<leader>k", "<cmd>lnext<CR>zz", { desc = "Next location item" })
 map("n", "<leader>j", "<cmd>lprev<CR>zz", { desc = "Previous location item" })
 
 -- ── Project ──────────────────────────────────────────────────────────────
-map("n", "gl", vim.diagnostic.open_float, { desc = "Line Diagnostics" })
+-- Wrapped in a function so vim.diagnostic isn't required at startup; indexing
+-- vim.diagnostic.open_float eagerly pulls the whole module in (~1ms).
+map("n", "gl", function() vim.diagnostic.open_float() end, { desc = "Line Diagnostics" })
 map("n", "<leader>ud", function()
   local vt = vim.diagnostic.config().virtual_text
   vim.diagnostic.config({ virtual_text = not vt and { prefix = "●", spacing = 2 } or false })

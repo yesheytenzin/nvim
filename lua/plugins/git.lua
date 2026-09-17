@@ -62,6 +62,12 @@ return {
       -- globally would swallow that operator everywhere, not just during merges, so
       -- these are applied buffer-local and only while 'diff' is actually set on the window.
       local function apply_diffget_maps(bufnr)
+        -- diffview.nvim sets 'diff' on its own buffers too, but numbers them its
+        -- own way, so `diffget //2`/`//3` would target the wrong buffer there.
+        -- Skip it; diffview uses do/dp (2-way) and 2do/3do (merge tool) instead.
+        if vim.api.nvim_buf_get_name(bufnr):match("^diffview://") then
+          return
+        end
         local opts = { buffer = bufnr, silent = true }
         vim.keymap.set("n", "gu", "<cmd>diffget //2<cr>", vim.tbl_extend("force", opts, { desc = "Diffget //2 (ours)" }))
         vim.keymap.set("n", "gh", "<cmd>diffget //3<cr>", vim.tbl_extend("force", opts, { desc = "Diffget //3 (theirs)" }))
@@ -100,7 +106,8 @@ return {
   -- tree, arbitrary revs, and a porcelain file history. Complements fugitive
   -- (line-level :Gdiffsplit, staging) with a file-tree-first review surface.
   -- All commands are uppercase and namespaced, so lazy-loading via `keys`/`cmd`
-  -- keeps startup free of cost. No plenary/devicons dependency.
+  -- keeps startup free of cost. Only optional dep is nvim-web-devicons, which
+  -- is not installed here, so `use_icons` is forced off below.
   {
     "sindrets/diffview.nvim",
     cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewToggleFiles", "DiffviewFocusFiles", "DiffviewRefresh", "DiffviewFileHistory", "DiffviewLog" },
@@ -113,10 +120,38 @@ return {
     opts = {
       -- Smarter intra-line highlighting for changed regions.
       enhanced_diff_hl = true,
+      -- Defaults to true and prints a "nvim-web-devicons is required" warning
+      -- on every view when devicons is absent. It is absent here.
+      use_icons = false,
       -- Keep the file panel on the left; diff2_horizontal splits stacked.
       view = {
         default = { layout = "diff2_horizontal" },
         file_history = { layout = "diff2_horizontal" },
+      },
+      -- diffview installs BUFFER-LOCAL leader maps in its views/panels, so a
+      -- few of its defaults shadow this config's globals inside diff buffers:
+      --   <leader>e  -> focus file panel   shadows netrw (<leader>e)
+      --   <leader>ca -> choose all         shadows LSP code action (<leader>ca)
+      --   <leader>co -> choose ours        shadows Aerial outline (<leader>co)
+      -- Drop those three; keep diffview's non-colliding <leader>b/ct/cb/cO/...
+      -- Conflict resolution still works via diff-mode natives (do/dp in a
+      -- 2-way diff, 2do/3do in the merge tool).
+      keymaps = {
+        view = {
+          ["<leader>e"] = false,
+          ["<leader>ca"] = false,
+          ["<leader>co"] = false,
+          -- Re-home "focus file panel" onto a collision-free git-namespaced key.
+          ["<leader>ge"] = "<cmd>DiffviewFocusFiles<cr>",
+        },
+        file_panel = {
+          ["<leader>e"] = false,
+          ["<leader>ge"] = "<cmd>DiffviewFocusFiles<cr>",
+        },
+        file_history_panel = {
+          ["<leader>e"] = false,
+          ["<leader>ge"] = "<cmd>DiffviewFocusFiles<cr>",
+        },
       },
     },
     config = function(_, opts)
