@@ -1,113 +1,137 @@
--- Omarchy theme bridge: lazy applies colorscheme from ~/.local/state/omarchy/current/theme/neovim.lua
--- Called via omarchy hook: nvim --server $sock --remote-send "<cmd>lua require('theme').reload()<CR>"
--- Also auto-applied at startup via VeryLazy
+-- Omarchy theme bridge: reads the omarchy-managed spec symlinked at
+-- lua/plugins/theme.lua, installs the referenced theme plugin via vim.pack,
+-- and applies its colorscheme. Also handles hot-swapping when omarchy stages a
+-- new theme (hook via --remote-send, or the fs watcher below).
+--
+-- No plugin manager internals here: theme plugins live in vim.pack's directory
+-- and are loaded with :packadd.
 local M = {}
 
-local function get_omarchy_colorscheme()
+local uv = vim.uv or vim.loop
+local theme_path = vim.fn.expand("~/.local/state/omarchy/current/theme/neovim.lua")
+
+local installed = {} -- plugin name -> true once packadd'd + setup
+local active_plugin -- name of the theme plugin currently applied
+
+local function repo_basename(src)
+  return (src:gsub("%.git$", ""):match("[^/]+$"))
+end
+
+-- Lua module name for a colorscheme plugin (repo basename is not always the
+-- module: e.g. catppuccin/nvim -> "catppuccin", tokyonight.nvim -> "tokyonight").
+local function module_name(base)
+  if base == "nvim" then return "catppuccin" end
+  return (base:gsub("%.nvim$", ""):gsub("%-nvim$", ""))
+end
+
+local function plugin_dir(name)
+  return vim.fs.joinpath(vim.fn.stdpath("data"), "site", "pack", "core", "opt", name)
+end
+
+local function unload_modules(name)
+  local root = plugin_dir(name) .. "/lua"
+  if vim.fn.isdirectory(root) ~= 1 then return end
+  for _, file in ipairs(vim.fn.glob(root .. "/**/*.lua", false, true)) do
+    local rel = file:sub(#root + 2):gsub("%.lua$", ""):gsub("/", ".")
+    package.loaded[rel] = nil
+    package.preload[rel] = nil
+  end
+end
+
+local function read_spec()
+  package.loaded["plugins.theme"] = nil
   local ok, spec = pcall(require, "plugins.theme")
   if not ok or type(spec) ~= "table" then return nil end
-  -- Omarchy's generated theme file may include a disabled LazyVim marker.
+  return spec
+end
+
+-- Pull the theme plugin descriptor + colorscheme name out of the omarchy spec.
+local function parse(spec)
+  local plugin, colorscheme
   for _, s in ipairs(spec) do
-    if s[1] == "LazyVim/LazyVim" and s.opts and s.opts.colorscheme then
-      return s.opts.colorscheme
+    if s[1] == "LazyVim/LazyVim" then
+      colorscheme = (s.opts and s.opts.colorscheme) or colorscheme
+    elseif type(s[1]) == "string" then
+      local name = s.name or repo_basename(s[1])
+      plugin = {
+        src = s[1],
+        name = name,
+        version = s.version or s.branch,
+        opts = s.opts,
+        module = module_name(name),
+      }
     end
   end
-  -- Fallback: pure lazy without LazyVim, try to infer from first plugin
-  -- e.g. { "rebelot/kanagawa.nvim" } -> colorscheme "kanagawa"
-  --      { "catppuccin/nvim" } -> "catppuccin"
-  --      { "folke/tokyonight.nvim" } -> "tokyonight-night"
-  local first = spec[1]
-  if first and type(first[1]) == "string" then
-    local repo = first[1]:lower()
-    if repo:find("kanagawa") then return "kanagawa" end
-    if repo:find("catppuccin") then return "catppuccin" end
-    if repo:find("tokyonight") then return "tokyonight-night" end
-    if repo:find("gruvbox") then return "gruvbox" end
-    if repo:find("rose%-pine") then return "rose-pine-dawn" end
+  if not colorscheme and plugin then
+    -- Pure-lazy spec without a LazyVim marker: infer from the plugin.
+    local base = plugin.name:lower()
+    if base:find("kanagawa") then colorscheme = "kanagawa" end
+    if base:find("tokyonight") then colorscheme = "tokyonight-night" end
+    if base:find("catppuccin") then colorscheme = "catppuccin" end
+    if base:find("gruvbox") then colorscheme = "gruvbox" end
+    if base:find("rose%-pine") then colorscheme = "rose-pine-dawn" end
   end
-  return nil
+  return plugin, colorscheme
 end
 
-local function apply_colorscheme(name, plugin_name)
-  if not name then return false end
-  -- Ensure plugin is installed/loaded via lazy
-  if plugin_name then
-    local ok, cfg = pcall(require, "lazy.core.config")
-    if ok and cfg and cfg.plugins and cfg.plugins[plugin_name] then
-      local plugin = cfg.plugins[plugin_name]
-      if plugin and not plugin._.loaded then
-        local ok2, loader = pcall(require, "lazy.core.loader")
-        if ok2 and loader then pcall(loader.colorscheme, name) end
-      elseif plugin and plugin._.loaded then
-        local ok2, loader = pcall(require, "lazy.core.loader")
-        if ok2 and loader and loader.reload then pcall(loader.reload, plugin) end
-      end
+-- Ensure the theme plugin is installed and sourced (idempotent per session).
+local function ensure(plugin)
+  if not plugin then return end
+  local src = plugin.src
+  if not (src:find("://", 1, true) or src:match("^[%w]+:")) then
+    src = "https://github.com/" .. src
+  end
+  pcall(vim.pack.add, { { src = src, name = plugin.name, version = plugin.version } }, { load = false, confirm = false })
+  if installed[plugin.name] then return end
+  installed[plugin.name] = true
+  pcall(vim.cmd.packadd, plugin.name)
+  if plugin.opts then
+    local ok, mod = pcall(require, plugin.module)
+    if ok and type(mod) == "table" and type(mod.setup) == "function" then
+      pcall(mod.setup, plugin.opts)
     end
   end
-  -- Apply colorscheme
-  local ok = pcall(vim.cmd.colorscheme, name)
-  if ok then
-    vim.g.colors_name = name
-    -- Also try to notify lazy that colorscheme changed
-    pcall(vim.api.nvim_exec_autocmds, "ColorScheme", { pattern = name })
-    return true
-  end
-  return false
 end
 
+--- Install + apply the current omarchy theme synchronously (called from init).
+function M.load()
+  local spec = read_spec()
+  if not spec then return end
+  local plugin, colorscheme = parse(spec)
+  if not colorscheme then return end
+  ensure(plugin)
+  active_plugin = plugin and plugin.name or active_plugin
+  if vim.g.applied_colorscheme == colorscheme then return end
+  if pcall(vim.cmd.colorscheme, colorscheme) then
+    vim.g.applied_colorscheme = colorscheme
+  end
+end
+
+--- Hot-swap: omarchy staged a new neovim.lua.
 function M.reload()
-  -- Reload theme spec from disk (omarchy just staged new neovim.lua)
-  package.loaded["plugins.theme"] = nil
   vim.schedule(function()
-    local ok, spec = pcall(require, "plugins.theme")
-    if not ok then
-      return
-    end
-    -- Find theme plugin name (first spec not LazyVim)
-    local theme_plugin, colorscheme
-    for _, s in ipairs(spec) do
-      if s[1] == "LazyVim/LazyVim" and s.opts and s.opts.colorscheme then
-        colorscheme = s.opts.colorscheme
-      elseif s[1] and s[1] ~= "LazyVim/LazyVim" then
-        theme_plugin = s.name or s[1]
-        -- for "catppuccin/nvim" the plugin key is "catppuccin"
-        if theme_plugin == "catppuccin/nvim" then theme_plugin = "catppuccin" end
-        if theme_plugin:find("/") then theme_plugin = theme_plugin:match("[^/]+$") end
-      end
-    end
-    if not colorscheme then colorscheme = get_omarchy_colorscheme() end
-    if not colorscheme then
-      return
-    end
+    local spec = read_spec()
+    if not spec then return end
+    local plugin, colorscheme = parse(spec)
+    if not colorscheme then return end
 
-    -- Boot already applied this exact theme synchronously (see lazy_init):
-    -- re-clearing highlights here would flash an unstyled frame post-launch.
-    if vim.g.applied_colorscheme == colorscheme then
-      return
-    end
+    local previous = active_plugin
+    ensure(plugin)
+    active_plugin = plugin and plugin.name or active_plugin
 
-    -- Clear old highlights (needed for light/dark switches)
+    -- Boot already applied this exact theme; re-clearing highlights would
+    -- flash an unstyled frame post-launch.
+    if vim.g.applied_colorscheme == colorscheme then return end
+
     vim.cmd("highlight clear")
     if vim.fn.exists("syntax_on") == 1 then vim.cmd("syntax reset") end
 
-    -- Unload previous theme lua modules if aether-style (generic template)
-    if theme_plugin then
-      local ok2, cfg = pcall(require, "lazy.core.config")
-      if ok2 and cfg and cfg.plugins then
-        local p = cfg.plugins[theme_plugin]
-        if p and p.dir then
-          local ok3, util = pcall(require, "lazy.core.util")
-          if ok3 and util and util.walkmods then
-            util.walkmods(p.dir .. "/lua", function(mod)
-              package.loaded[mod] = nil
-              package.preload[mod] = nil
-            end)
-          end
-        end
-      end
+    -- Drop the previous theme's lua modules so its colors are rebuilt.
+    if previous and previous ~= active_plugin then
+      unload_modules(previous)
     end
 
-    if apply_colorscheme(colorscheme, theme_plugin) then
+    if pcall(vim.cmd.colorscheme, colorscheme) then
       vim.g.applied_colorscheme = colorscheme
     end
     vim.defer_fn(function()
@@ -115,7 +139,7 @@ function M.reload()
         vim.g.applied_colorscheme = colorscheme
       end
       vim.cmd("redraw!")
-      -- Reload transparency if user had it (optional)
+      -- Reload transparency if the user had it (optional).
       local transp = vim.fn.stdpath("config") .. "/plugin/after/transparency.lua"
       if vim.fn.filereadable(transp) == 1 then
         vim.defer_fn(function() pcall(vim.cmd, "source " .. transp) end, 5)
@@ -124,40 +148,35 @@ function M.reload()
   end)
 end
 
--- Auto-apply omarchy theme at startup (VeryLazy, after lazy done)
+-- Apply at startup once the UI is idle (M.load already applied synchronously;
+-- this is a safety net if the spec was not ready during init).
 vim.api.nvim_create_autocmd("User", {
   pattern = "VeryLazy",
   once = true,
-  callback = function() M.reload() end,
+  callback = function()
+    if vim.g.applied_colorscheme == nil then M.load() end
+  end,
 })
 
-
-
--- Ensure nvim has a server socket so omarchy hook can remote-send (fallback).
--- The run dir may not exist (then serverstart fails with "operation not
--- permitted" spam in nvim.log), so create it first.
+-- Ensure nvim has a server socket so the omarchy hook can remote-send (fallback).
+-- The run dir may not exist, so create it first.
 if vim.v.servername == "" or vim.v.servername == nil then
   pcall(vim.fn.mkdir, vim.fn.stdpath("run"), "p")
   pcall(vim.fn.serverstart, vim.fn.stdpath("run") .. "/nvim." .. vim.fn.getpid() .. ".0")
 end
 
--- File watcher fallback: if hook fails (no socket), nvim still hot-reloads when neovim.lua changes
+-- File watcher fallback: if the hook fails (no socket), nvim still hot-reloads
+-- when neovim.lua changes.
 do
-  local theme_path = vim.fn.expand("~/.local/state/omarchy/current/theme/neovim.lua")
-  local uv = vim.uv or vim.loop
   if uv and theme_path then
     local poll = uv.new_fs_poll()
     if poll then
       poll:start(theme_path, 500, function(err, prev, curr)
         if err then return end
         if prev and curr and curr.mtime and prev.mtime and curr.mtime.sec ~= prev.mtime.sec then
-          vim.schedule(function()
-            local ok, mod = pcall(require, "theme")
-            if ok and mod and mod.reload then mod.reload() end
-          end)
+          M.reload()
         end
       end)
-      -- keep handle alive
       vim.api.nvim_create_autocmd("VimLeavePre", {
         callback = function() pcall(function() poll:stop(); poll:close() end) end,
       })

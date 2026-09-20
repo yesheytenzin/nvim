@@ -37,7 +37,7 @@ vim.fn.mkdir(undodir, "p")
 
 -- ── Keys & timing ────────────────────────────────────────────────────────
 vim.opt.timeout = true
-vim.opt.timeoutlen = 500 -- forgiving window for 3-key <leader> chords (space+p+f/s) incl. SSH/tmux jitter; 1000=nvim default, 300=too tight, misses when typed slow
+vim.opt.timeoutlen = 350 -- window for 3-key <leader> chords (space+p+f/s) incl. SSH/tmux jitter; 500=sluggish, 300=too tight when typed slow
 vim.opt.ttimeoutlen = 50 -- key-code wait: 10ms drops <M-1> etc over SSH/tmux jitter; 50 stays snappy
 
 -- ── UI (stock Neovim; colorscheme owns highlights, never this file) ──────

@@ -1,77 +1,41 @@
--- Primeagen's completion stack: nvim-cmp + LSP, snippets, buffer, and paths.
+-- Completion: blink.cmp (the successor to nvim-cmp). The built-in lsp / path /
+-- snippets / buffer sources replace the whole nvim-cmp source-plugin stack, and
+-- the built-in `snippets` source loads friendly-snippets via native
+-- `vim.snippet` — so LuaSnip is not needed.
+--
+-- Pinned to 1.*: blink v2 (main) requires the separate compiled `blink.lib`
+-- package; v1 is the stable line.
 return {
+  { "rafamadriz/friendly-snippets" },
   {
-    "hrsh7th/nvim-cmp",
+    "saghen/blink.cmp",
+    version = vim.version.range("1.*"),
     event = { "InsertEnter", "CmdlineEnter" },
-    dependencies = {
-      "hrsh7th/cmp-nvim-lsp",
-      "hrsh7th/cmp-buffer",
-      "hrsh7th/cmp-path",
-      "hrsh7th/cmp-cmdline",
-      "L3MON4D3/LuaSnip",
-      "saadparwaiz1/cmp_luasnip",
-      "rafamadriz/friendly-snippets",
-    },
+    deps = { "friendly-snippets" },
     config = function()
-      local cmp = require("cmp")
-      local luasnip = require("luasnip")
-
-      require("luasnip.loaders.from_vscode").lazy_load()
-
-      cmp.setup({
-        snippet = {
-          expand = function(args)
-            luasnip.lsp_expand(args.body)
-          end,
+      require("blink.cmp").setup({
+        keymap = {
+          -- super-tab: Tab selects-and-accepts / jumps snippets (matches the
+          -- old cmp setup); C-p/C-n select, C-Space show, C-e hide, C-k signature.
+          preset = "super-tab",
+          -- cmp confirmed on <CR>; super-tab leaves <CR> unbound.
+          ["<CR>"] = { "accept", "fallback" },
         },
-        mapping = cmp.mapping.preset.insert({
-          ["<C-p>"] = cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Select }),
-          ["<C-n>"] = cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Select }),
-          ["<CR>"] = cmp.mapping.confirm({ select = true }),
-          ["<C-Space>"] = cmp.mapping.complete(),
-          ["<C-e>"] = cmp.mapping.abort(),
-          -- Super-tab: without this, friendly-snippets load but no keyboard
-          -- input can ever expand/jump a snippet (Tab confirms cmp).
-          ["<Tab>"] = cmp.mapping(function(fallback)
-            if cmp.visible() then
-              cmp.confirm({ select = true })
-            elseif luasnip.expand_or_locally_jumpable() then
-              luasnip.expand_or_jump()
-            else
-              fallback()
-            end
-          end, { "i", "s" }),
-          ["<S-Tab>"] = cmp.mapping(function(fallback)
-            if luasnip.locally_jumpable(-1) then
-              luasnip.jump(-1)
-            else
-              fallback()
-            end
-          end, { "i", "s" }),
-        }),
-        sources = cmp.config.sources({
-          { name = "nvim_lsp", max_item_count = 20 },
-          { name = "luasnip", max_item_count = 10 },
-        }, {
-          -- Buffer rescans open buffers per keystroke: gate on 3+ chars and
-          -- cap items to keep typing latency flat in large files.
-          { name = "buffer", keyword_length = 3, max_item_count = 12 },
-          { name = "path", keyword_length = 2, max_item_count = 12 },
-        }),
-        performance = {
-          debounce = 60,
-          throttle = 30,
-          fetching_timeout = 200, -- default 500 keeps slow sources blocking longer
+        sources = {
+          default = { "lsp", "path", "snippets", "buffer" },
+          providers = {
+            lsp = { max_items = 20 },
+            snippets = { max_items = 10 },
+            -- Buffer rescans open buffers per keystroke: gate on 3+ chars and
+            -- cap items to keep typing latency flat in large files.
+            buffer = { min_keyword_length = 3, max_items = 12 },
+            path = { min_keyword_length = 2, max_items = 12 },
+          },
         },
-      })
-
-      cmp.setup.cmdline({ "/", "?" }, {
-        mapping = cmp.mapping.preset.cmdline(),
-        sources = { { name = "buffer" } },
-      })
-      cmp.setup.cmdline(":", {
-        mapping = cmp.mapping.preset.cmdline(),
-        sources = cmp.config.sources({ { name = "path" } }, { { name = "cmdline" } }),
+        cmdline = {
+          keymap = { preset = "cmdline" },
+          completion = { menu = { auto_show = true } },
+        },
       })
     end,
   },

@@ -33,7 +33,7 @@ vim.api.nvim_create_autocmd("BufEnter", {
 -- netrw's stock "p" (preview) map is a trap: it's a bare single-key map (no <leader>),
 -- so it's easy to hit by accident while browsing, and it errors outright on directories
 -- ("sorry, cannot preview a directory such as <...>"). This workflow already has
--- Telescope for previewing/finding files, so just remove the accident-prone map.
+-- fzf-lua for previewing/finding files, so just remove the accident-prone map.
 vim.api.nvim_create_autocmd("FileType", {
   group = AutoCdGroup,
   pattern = "netrw",

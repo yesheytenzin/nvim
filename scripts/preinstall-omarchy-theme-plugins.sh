@@ -1,12 +1,14 @@
 #!/bin/bash
 # Pre-install every colorscheme plugin that Omarchy themes reference in their
-# neovim.lua, so lazy.nvim never has to download after an omarchy theme switch.
+# neovim.lua, into the vim.pack directory. Optional with vim.pack: lua/theme.lua
+# clones a missing theme plugin on demand, so a switch works without this; the
+# script just front-loads the download so switches are instant.
 # Idempotent: skips plugins already present.
 # Usage: ~/.config/nvim/scripts/preinstall-omarchy-theme-plugins.sh
 
 set -euo pipefail
 
-DATA="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/lazy"
+DATA="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/site/pack/core/opt"
 mkdir -p "$DATA"
 
 # repo -> install dir (matches the `name =` field in Omarchy's neovim.lua
@@ -16,7 +18,7 @@ declare -A PLUGINS=(
   ["neanias/everforest-nvim"]="everforest-nvim"
   ["ellisonleao/gruvbox.nvim"]="gruvbox.nvim"
   ["bjarneo/hackerman.nvim"]="hackerman.nvim"
-  ["bjarneo/aether.nvim"]="aether.nvim"          # hackerman dependency
+  ["bjarneo/aether.nvim"]="aether"          # hackerman dependency; dir name matches theme spec `name`
   ["omacom-io/lumon.nvim"]="lumon.nvim"
   ["tahayvr/matteblack.nvim"]="matteblack.nvim"
   ["EdenEast/nightfox.nvim"]="nightfox.nvim"

@@ -8,6 +8,8 @@ return {
       { "<leader>ql", function() require("persistence").load({ last = true }) end, desc = "Restore Last Session" },
       { "<leader>qd", function() require("persistence").stop() end, desc = "Don't Save Current Session" },
     },
-    opts = { options = vim.opt.sessionoptions:get() },
+    config = function()
+      require("persistence").setup({ options = vim.opt.sessionoptions:get() })
+    end,
   },
 }

@@ -1,88 +1,41 @@
--- Search & outline: Telescope pickers plus a code outline.
+-- Search & outline: fzf-lua pickers plus a code outline.
+-- fzf-lua drives the native fzf binary (already installed), so there is no
+-- telescope + fzf-native build step and no plenary dependency for pickers.
 return {
-  -- 1) Make telescope filtering as fast & accurate as RubyMine's index (fzf-native optional)
   {
-    "nvim-telescope/telescope.nvim",
-    cmd = "Telescope",
-    dependencies = {
-      "nvim-lua/plenary.nvim",
-      { "nvim-telescope/telescope-fzf-native.nvim", build = "make", cond = function() return vim.fn.executable("make") == 1 end },
-    },
-    opts = {
-      defaults = {
-        sorting_strategy = "descending",
-        layout_strategy = "horizontal",
-        layout_config = { prompt_position = "bottom", preview_width = 0.55 },
-        mappings = {
-          i = {
-            ["<C-j>"] = function(...)
-              return require("telescope.actions").move_selection_next(...)
-            end,
-            ["<C-k>"] = function(...)
-              return require("telescope.actions").move_selection_previous(...)
-            end,
-            ["<C-q>"] = function(...)
-              return require("telescope.actions").send_to_qflist(...)
-            end,
-            ["<M-q>"] = function(...)
-              return require("telescope.actions").send_selected_to_qflist(...)
-            end,
-          },
-        },
-      },
-      extensions = {
-        fzf = {
-          fuzzy = true,
-          override_generic_sorter = true,
-          override_file_sorter = true,
-          case_mode = "smart_case",
-        },
-      },
-    },
-    config = function(_, opts)
-      require("telescope").setup(opts)
-      pcall(require("telescope").load_extension, "fzf")
-    end,
+    "ibhagwan/fzf-lua",
+    cond = function() return vim.fn.executable("fzf") == 1 end,
+    cmd = "FzfLua",
     keys = {
-      -- core telescope (restored after pure-lazy refactor)
-      { "<leader>pf", "<cmd>Telescope find_files<cr>", desc = "Find Files" },
-      { "<leader>pg", "<cmd>Telescope live_grep<cr>", desc = "Grep" },
-      { "<leader>pb", "<cmd>Telescope buffers<cr>", desc = "Buffers" },
-      { "<leader>ph", "<cmd>Telescope help_tags<cr>", desc = "Help" },
-      { "<leader>po", "<cmd>Telescope oldfiles<cr>", desc = "Old Files" },
-      -- treesitter symbols: instant, accurate, no LSP wait
-      { "<leader>pt", "<cmd>Telescope treesitter<cr>", desc = "Symbols (Treesitter) — instant, no LSP" },
-      -- Primeagen word-grep group: kept here (not keymaps.lua) so lazy.nvim
-      -- registers them BEFORE telescope loads. Eager vim.keymap.set versions
-      -- fail on a fresh `nvim .` because telescope isn't on the rtp yet.
+      { "<leader>pf", "<cmd>FzfLua files<cr>", desc = "Find Files" },
+      { "<leader>pg", "<cmd>FzfLua live_grep<cr>", desc = "Grep" },
+      { "<leader>pb", "<cmd>FzfLua buffers<cr>", desc = "Buffers" },
+      { "<leader>ph", "<cmd>FzfLua helptags<cr>", desc = "Help" },
+      { "<leader>po", "<cmd>FzfLua oldfiles<cr>", desc = "Old Files" },
+      { "<leader>pt", "<cmd>FzfLua lsp_document_symbols<cr>", desc = "Symbols (LSP)" },
+      -- Primeagen word-grep group: lazy keys keep fzf-lua unloaded until use.
       {
         "<leader>ps",
         function()
           local q = vim.fn.input("Grep > ")
           if q == nil or q == "" then return end
-          require("telescope.builtin").grep_string({ search = q })
+          require("fzf-lua").grep({ search = q })
         end,
         desc = "Grep prompt",
       },
       {
         "<leader>pws",
-        function()
-          require("telescope.builtin").grep_string({ search = vim.fn.expand("<cword>") })
-        end,
+        function() require("fzf-lua").grep_cword() end,
         desc = "Grep word under cursor",
       },
       {
         "<leader>pWs",
-        function()
-          require("telescope.builtin").grep_string({ search = vim.fn.expand("<cWORD>") })
-        end,
+        function() require("fzf-lua").grep_cWORD() end,
         desc = "Grep WORD under cursor",
       },
       {
         "<leader>fd",
-        function()
-          require("telescope.builtin").find_files({ cwd = vim.fn.expand("%:p:h") })
-        end,
+        function() require("fzf-lua").files({ cwd = vim.fn.expand("%:p:h") }) end,
         desc = "Find Files (Buffer Dir)",
       },
       {
@@ -104,17 +57,22 @@ return {
         desc = "Copy Relative Path",
       },
     },
+    config = function()
+      require("fzf-lua").setup({})
+    end,
   },
-  -- 2) Outline / breadcrumbs (moved here from rails.lua: not Rails-specific)
+
+  -- Outline / breadcrumbs (not Rails-specific).
   {
     "stevearc/aerial.nvim",
-    -- No event: keys-only loading keeps it out of the boot path entirely.
     keys = {
       { "<leader>co", "<cmd>AerialToggle!<cr>", desc = "Outline (Aerial)" },
     },
-    opts = {
-      layout = { max_width = { 40, 0.2 }, width = nil, min_width = 20 },
-      filter_kind = false,
-    },
+    config = function()
+      require("aerial").setup({
+        layout = { max_width = { 40, 0.2 }, width = nil, min_width = 20 },
+        filter_kind = false,
+      })
+    end,
   },
 }

@@ -4,24 +4,7 @@
 return {
   {
     "folke/which-key.nvim",
-    event = "VeryLazy",
-    opts = {
-      preset = "modern",
-      delay = 300,
-      spec = {
-        { "<leader>p", group = "Pick/Search (Telescope)" },
-        { "<leader>f", group = "File" },
-        { "<leader>h", group = "Harpoon" },
-        { "<leader>c", group = "Code" },
-        { "<leader>q", group = "Session/Quit" },
-        { "<leader>g", group = "Git" },
-        { "<leader>r", group = "Rails/Refactor" },
-        { "<leader>m", group = "Merge" },
-        { "<leader>u", group = "UI/Toggle" },
-        { "<leader>t", group = "Trouble" },
-        { "<leader>z", group = "Zen" },
-      },
-    },
+    event = { "VeryLazy" },
     keys = {
       {
         "<leader>?",
@@ -29,5 +12,24 @@ return {
         desc = "Buffer keymaps (which-key)",
       },
     },
+    config = function()
+      require("which-key").setup({
+        preset = "modern",
+        delay = 200,
+        spec = {
+          { "<leader>p", group = "Pick/Search (fzf-lua)" },
+          { "<leader>f", group = "File" },
+          { "<leader>h", group = "Harpoon" },
+          { "<leader>c", group = "Code" },
+          { "<leader>q", group = "Session/Quit" },
+          { "<leader>g", group = "Git" },
+          { "<leader>r", group = "Rails/Refactor" },
+          { "<leader>m", group = "Merge" },
+          { "<leader>u", group = "UI/Toggle" },
+          { "<leader>t", group = "Trouble" },
+          { "<leader>z", group = "Zen" },
+        },
+      })
+    end,
   },
 }

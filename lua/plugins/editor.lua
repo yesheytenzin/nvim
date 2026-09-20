@@ -1,6 +1,6 @@
 -- Editor enhancements, Primeagen-curated (ThePrimeagen/init.lua):
 -- undo tree, diagnostics list, secret cloaking, textobjects, zen mode.
--- Named by role, not author. All lazy-loaded — ~0 startup cost.
+-- Named by role, not author. All trigger-loaded — ~0 startup cost.
 
 return {
   -- 1) Undotree — <leader>ut — Primeagen's most iconic plugin (ut, not bare u:
@@ -22,31 +22,33 @@ return {
       { "]t", function() require("trouble").next({ skip_groups = true, jump = true }) end, desc = "Trouble next" },
       { "[t", function() require("trouble").previous({ skip_groups = true, jump = true }) end, desc = "Trouble prev" },
     },
-    opts = {},
+    config = function() require("trouble").setup({}) end,
   },
 
   -- 3) Cloak — hide secrets in .env* (Primeagen cloak.lua)
   {
     "laytan/cloak.nvim",
     event = "BufReadPre",
-    opts = {
-      enabled = true,
-      cloak_character = "*",
-      highlight_group = "Comment",
-      patterns = {
-        {
-          file_pattern = { ".env*", "wrangler.toml", ".dev.vars" },
-          cloak_pattern = "=.+",
+    config = function()
+      require("cloak").setup({
+        enabled = true,
+        cloak_character = "*",
+        highlight_group = "Comment",
+        patterns = {
+          {
+            file_pattern = { ".env*", "wrangler.toml", ".dev.vars" },
+            cloak_pattern = "=.+",
+          },
         },
-      },
-    },
+      })
+    end,
   },
 
   -- 4) Treesitter textobjects — af/if for functions (Primeagen treesitter.lua)
   {
     "nvim-treesitter/nvim-treesitter-textobjects",
     event = { "BufReadPost", "BufNewFile" },
-    dependencies = { "nvim-treesitter/nvim-treesitter" },
+    deps = { "nvim-treesitter" },
     config = function()
       require("nvim-treesitter-textobjects").setup({
         select = {

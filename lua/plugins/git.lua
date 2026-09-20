@@ -1,6 +1,5 @@
--- Version control in one module: fugitive (status, push/pull, diffget),
--- diffview (side-by-side working-tree/commit/file-history viewer) plus
--- mergeui (RubyMine-style 3-pane merge). Previously two files, one concern.
+-- Version control in one module: fugitive (status, push/pull, diffget) plus
+-- mergeui (RubyMine-style 3-pane merge).
 return {
   -- vim-fugitive: ThePrimeagen style
   -- Source: https://github.com/ThePrimeagen/init.lua/blob/master/lua/theprimeagen/lazy/fugitive.lua
@@ -16,8 +15,9 @@ return {
       -- while 'diff' is set (see config() below).
     },
     config = function()
-      -- <leader>gs — Primeagen's main toggle (vim.cmd.Git opens :Git status)
-      vim.keymap.set("n", "<leader>gs", vim.cmd.Git, { desc = "Git Status (Fugitive)" })
+      -- <leader>gs — Primeagen's main toggle (vim.cmd.Git opens :Git status).
+      -- The lazy `keys` entry above only *loads* fugitive; this map is the real
+      -- action and runs once the plugin is on disk, so it is not duplicated there.
 
       local group = vim.api.nvim_create_augroup("ThePrimeagen_Fugitive", {})
 
@@ -62,12 +62,6 @@ return {
       -- globally would swallow that operator everywhere, not just during merges, so
       -- these are applied buffer-local and only while 'diff' is actually set on the window.
       local function apply_diffget_maps(bufnr)
-        -- diffview.nvim sets 'diff' on its own buffers too, but numbers them its
-        -- own way, so `diffget //2`/`//3` would target the wrong buffer there.
-        -- Skip it; diffview uses do/dp (2-way) and 2do/3do (merge tool) instead.
-        if vim.api.nvim_buf_get_name(bufnr):match("^diffview://") then
-          return
-        end
         local opts = { buffer = bufnr, silent = true }
         vim.keymap.set("n", "gu", "<cmd>diffget //2<cr>", vim.tbl_extend("force", opts, { desc = "Diffget //2 (ours)" }))
         vim.keymap.set("n", "gh", "<cmd>diffget //3<cr>", vim.tbl_extend("force", opts, { desc = "Diffget //3 (theirs)" }))
@@ -102,63 +96,7 @@ return {
       })
     end,
   },
-  -- diffview.nvim: single-tabpage, side-by-side diff viewer for the working
-  -- tree, arbitrary revs, and a porcelain file history. Complements fugitive
-  -- (line-level :Gdiffsplit, staging) with a file-tree-first review surface.
-  -- All commands are uppercase and namespaced, so lazy-loading via `keys`/`cmd`
-  -- keeps startup free of cost. Only optional dep is nvim-web-devicons, which
-  -- is not installed here, so `use_icons` is forced off below.
-  {
-    "sindrets/diffview.nvim",
-    cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewToggleFiles", "DiffviewFocusFiles", "DiffviewRefresh", "DiffviewFileHistory", "DiffviewLog" },
-    keys = {
-      { "<leader>gd", "<cmd>DiffviewOpen<cr>", desc = "Diff: working tree vs index" },
-      { "<leader>gD", "<cmd>DiffviewClose<cr>", desc = "Diff: close view" },
-      { "<leader>gh", "<cmd>DiffviewFileHistory<cr>", desc = "Diff: branch file history" },
-      { "<leader>gH", "<cmd>DiffviewFileHistory %<cr>", desc = "Diff: current file history" },
-    },
-    opts = {
-      -- Smarter intra-line highlighting for changed regions.
-      enhanced_diff_hl = true,
-      -- Defaults to true and prints a "nvim-web-devicons is required" warning
-      -- on every view when devicons is absent. It is absent here.
-      use_icons = false,
-      -- Keep the file panel on the left; diff2_horizontal splits stacked.
-      view = {
-        default = { layout = "diff2_horizontal" },
-        file_history = { layout = "diff2_horizontal" },
-      },
-      -- diffview installs BUFFER-LOCAL leader maps in its views/panels, so a
-      -- few of its defaults shadow this config's globals inside diff buffers:
-      --   <leader>e  -> focus file panel   shadows netrw (<leader>e)
-      --   <leader>ca -> choose all         shadows LSP code action (<leader>ca)
-      --   <leader>co -> choose ours        shadows Aerial outline (<leader>co)
-      -- Drop those three; keep diffview's non-colliding <leader>b/ct/cb/cO/...
-      -- Conflict resolution still works via diff-mode natives (do/dp in a
-      -- 2-way diff, 2do/3do in the merge tool).
-      keymaps = {
-        view = {
-          ["<leader>e"] = false,
-          ["<leader>ca"] = false,
-          ["<leader>co"] = false,
-          -- Re-home "focus file panel" onto a collision-free git-namespaced key.
-          ["<leader>ge"] = "<cmd>DiffviewFocusFiles<cr>",
-        },
-        file_panel = {
-          ["<leader>e"] = false,
-          ["<leader>ge"] = "<cmd>DiffviewFocusFiles<cr>",
-        },
-        file_history_panel = {
-          ["<leader>e"] = false,
-          ["<leader>ge"] = "<cmd>DiffviewFocusFiles<cr>",
-        },
-      },
-    },
-    config = function(_, opts)
-      require("diffview").setup(opts)
-    end,
-  },
-  -- mergeui.nvim: RubyMine-style 3-pane merge (CURRENT | RESULT | INCOMING) — renamed from tri-merge
+  -- mergeui.nvim: RubyMine-style 3-pane merge (CURRENT | RESULT | INCOMING)
   {
     "yesheytenzin/mergeui.nvim",
     cmd = { "MergeUI", "MergeUIClose", "MergeUITakeLeft", "MergeUITakeRight", "MergeUITakeBoth", "MergeUITakeNone", "MergeUIToggle", "MergeUISingle", "MergeUITriple", "TriMerge", "TriMergeClose", "RubymineMerge" },
@@ -166,23 +104,22 @@ return {
       { "<leader>gm", "<cmd>MergeUI<cr>", desc = "Merge: 3-pane (CURRENT | RESULT | INCOMING)" },
       -- NOTE: no bare `]c`/`[c` entries: a keys entry without an action creates a
       -- GLOBAL placeholder that swallows the builtin diff motions ]c/[c
-      -- everywhere. Conflict navigation stays buffer-local via opts.keymaps.
+      -- everywhere. Conflict navigation stays buffer-local via the config below.
     },
-    opts = {
-      view = "triple", -- "triple" (CURRENT|RESULT|INCOMING) or "single" (RESULT only) -- toggle with <leader>mt or :MergeUIToggle,
-      keymaps = {
-        take_left = "<leader>mh", -- >> CURRENT
-        take_right = "<leader>ml", -- << INCOMING
-        take_both = "<leader>mb",
-        take_none = "<leader>mx",
-        next_conflict = "]c",
-        prev_conflict = "[c",
-        quit = "<leader>mq",
-      },
-      show_indicators = true,
-    },
-    config = function(_, opts)
-      require("mergeui").setup(opts)
+    config = function()
+      require("mergeui").setup({
+        view = "triple", -- "triple" (CURRENT|RESULT|INCOMING) or "single" (RESULT only) -- toggle with <leader>mt or :MergeUIToggle,
+        keymaps = {
+          take_left = "<leader>mh", -- >> CURRENT
+          take_right = "<leader>ml", -- << INCOMING
+          take_both = "<leader>mb",
+          take_none = "<leader>mx",
+          next_conflict = "]c",
+          prev_conflict = "[c",
+          quit = "<leader>mq",
+        },
+        show_indicators = true,
+      })
     end,
   },
 }

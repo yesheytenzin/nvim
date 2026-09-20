@@ -1,11 +1,9 @@
 -- Language intelligence in one module: LSP servers, attach keymaps,
--- diagnostics, formatting, and incremental rename. Previously the attach
--- keymaps lived in autocmds.lua and rename in navigation.lua — same
--- concern, now one place.
+-- diagnostics, formatting, and incremental rename.
 
 -- Buffer-local LSP keymaps. Top-level (not inside a spec's config) so they
--- exist from startup, exactly as before: LspAttach can fire for buffers
--- opened before VeryLazy finishes.
+-- exist from startup: LspAttach can fire for buffers opened before the
+-- lspconfig spec has had a chance to load.
 -- NOTE: <leader>w (save) and <leader>d (delete) are bare GLOBAL maps, so in
 -- LSP buffers vim waits timeoutlen to disambiguate <leader>w vs <leader>ws
 -- (and <leader>d vs <leader>ds). That short pause on save/delete in code
@@ -41,8 +39,8 @@ vim.api.nvim_create_autocmd("LspAttach", {
 return {
   {
     "stevearc/conform.nvim",
-    -- No VeryLazy: autoformat is off and formatting is manual, so loading the
-    -- whole formatter stack on every boot is pure overhead. Loads on demand.
+    -- autoformat is off (vim.g.autoformat = false) and formatting is manual,
+    -- so nothing needs the formatter stack on boot. Loads on demand.
     cmd = { "ConformInfo" },
     keys = {
       {
@@ -51,33 +49,53 @@ return {
         desc = "Format buffer",
       },
     },
-    opts = {
-      formatters_by_ft = {
-        ruby = { "rubocop" }, yaml = { "yamlfmt" }, json = { "jq" }, sql = { "sql_formatter" },
-        c = { "clang_format" }, cpp = { "clang_format" }, lua = { "stylua" },
-      },
-      formatters = { rubocop = { timeout_ms = 5000 } },
-      format_on_save = function()
-        if vim.g.autoformat == false then return nil end
-        return { timeout_ms = 5000, lsp_fallback = true }
-      end,
-      log_level = vim.log.levels.WARN,
-    },
+    config = function()
+      require("conform").setup({
+        formatters_by_ft = {
+          ruby = { "rubocop" }, yaml = { "yamlfmt" }, json = { "jq" }, sql = { "sql_formatter" },
+          c = { "clang_format" }, cpp = { "clang_format" }, lua = { "stylua" },
+        },
+        formatters = { rubocop = { timeout_ms = 5000 } },
+        format_on_save = function()
+          if vim.g.autoformat == false then return nil end
+          return { timeout_ms = 5000, lsp_fallback = true }
+        end,
+        log_level = vim.log.levels.WARN,
+      })
+    end,
+  },
+  {
+    "j-hui/fidget.nvim",
+    config = function() require("fidget").setup({}) end,
+  },
+  {
+    "mason-org/mason.nvim",
+    cmd = { "Mason", "MasonInstall", "MasonUninstall", "MasonUninstallAll", "MasonLog" },
+    config = function() require("mason").setup() end,
+  },
+  {
+    "mason-org/mason-lspconfig.nvim",
+    deps = { "mason.nvim" },
+    -- automatic_enable defaults to true, which silently starts an LSP client
+    -- for EVERY Mason-installed tool that has a matching lspconfig entry —
+    -- e.g. a redundant "rubocop" client on top of the RuboCop support ruby_lsp
+    -- already runs internally. Disable it and enable servers explicitly below.
+    config = function()
+      require("mason-lspconfig").setup({
+        ensure_installed = { "lua_ls" },
+        automatic_enable = false,
+      })
+    end,
   },
   {
     "neovim/nvim-lspconfig",
     -- Load only when a file we actually have a server for is opened, not on
     -- every boot. vim.lsp.enable() re-runs FileType detection for already-open
-    -- buffers (nvim runtime lsp.lua), so the first code file still attaches.
+    -- buffers, so the first code file still attaches.
     ft = { "lua", "ruby", "eruby", "c", "cpp", "objc", "objcpp" },
-    dependencies = {
-      "stevearc/conform.nvim", "mason-org/mason.nvim", "mason-org/mason-lspconfig.nvim",
-      "hrsh7th/cmp-nvim-lsp", "j-hui/fidget.nvim",
-    },
+    deps = { "conform.nvim", "mason.nvim", "mason-lspconfig.nvim", "blink.cmp", "fidget.nvim" },
     config = function()
-      local capabilities = require("cmp_nvim_lsp").default_capabilities()
-      require("fidget").setup({})
-      require("mason").setup()
+      local capabilities = require("blink.cmp").get_lsp_capabilities()
       vim.lsp.config("lua_ls", {
         capabilities = capabilities,
         settings = { Lua = {
@@ -89,52 +107,42 @@ return {
       })
       vim.lsp.config("clangd", {
         capabilities = capabilities,
-        cmd = { "clangd", "--background-index", "--clang-tidy", "--header-insertion=never" },
+        -- --clang-tidy runs tidy checks on every open C++ file and is the usual
+        -- source of lag in large codebases, so it is off by default. Opt back in
+        -- per project with a .clangd (Diagnostics:) or a project overlay.
+        cmd = { "clangd", "--background-index", "--background-index-priority=low", "--header-insertion=never" },
         filetypes = { "c", "cpp", "objc", "objcpp" },
       })
       vim.lsp.config("ruby_lsp", {
         capabilities = capabilities,
         init_options = { enabledFeatures = { diagnostics = true } },
       })
-      -- automatic_enable defaults to true, which silently starts an LSP client for
-      -- EVERY Mason-installed tool that has a matching lspconfig entry — e.g. a
-      -- second, redundant "rubocop" LSP client on top of the RuboCop support
-      -- ruby_lsp already runs internally as its own addon. Disable it and enable
-      -- servers explicitly so only what's configured above actually attaches.
-      require("mason-lspconfig").setup({
-        ensure_installed = { "lua_ls" },
-        automatic_enable = false,
-      })
       vim.lsp.enable("lua_ls")
       vim.lsp.enable("clangd")
       vim.lsp.enable("ruby_lsp")
       vim.diagnostic.config({
-        virtual_text = { prefix = "●", spacing = 2, source = "if_many" }, signs = true, underline = true, severity_sort = true,
+        -- Virtual text defaults off: on large generated/minified buffers it is a
+        -- persistent redraw cost. <leader>ud toggles it on (see keymaps.lua).
+        virtual_text = false, signs = true, underline = true, severity_sort = true,
         float = { focusable = false, style = "minimal", border = "rounded", source = "always", header = "", prefix = "" },
       })
     end,
   },
   {
-    "mason-org/mason.nvim",
-    cmd = { "Mason", "MasonInstall", "MasonUninstall", "MasonUninstallAll", "MasonLog" },
-    opts = {},
-  },
-  {
     "WhoIsSethDaniel/mason-tool-installer.nvim",
-    dependencies = { "mason-org/mason.nvim" },
-    -- No VeryLazy: run_on_start is false so boot load does zero work.
-    -- Loads only when explicitly managing tools.
+    deps = { "mason.nvim" },
     cmd = { "MasonToolsInstall", "MasonToolsUpdate", "MasonToolsClean" },
-    opts = {
-      ensure_installed = {
-        "rubocop", "yamlfmt", "jq", "sql-formatter", "clang-format", "stylua",
-        "clangd",
-      },
-      run_on_start = false,
-    },
+    config = function()
+      require("mason-tool-installer").setup({
+        ensure_installed = {
+          "rubocop", "yamlfmt", "jq", "sql-formatter", "clang-format", "stylua",
+          "clangd",
+        },
+        run_on_start = false,
+      })
+    end,
   },
-  -- Incremental rename preview — RubyMine's inline rename (moved here from
-  -- navigation.lua: it is LSP-driven, not file-finding).
+  -- Incremental rename preview — RubyMine's inline rename (LSP-driven).
   {
     "smjonas/inc-rename.nvim",
     cmd = "IncRename",
@@ -148,6 +156,6 @@ return {
         desc = "Rename (inc-rename preview)",
       },
     },
-    opts = {},
+    config = function() require("inc_rename").setup({}) end,
   },
 }
