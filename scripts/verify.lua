@@ -40,6 +40,12 @@ end
 vim.notify = orig
 check("all config() load cleanly", #notes == 0)
 
+-- Treesitter parsers AND queries must resolve. Queries are symlinked into
+-- stdpath('data')/site/queries; broken links silently kill all highlighting
+-- (treesitter disables vim syntax, so there is no fallback).
+check("treesitter ruby query available", #vim.treesitter.query.get_files("ruby", "highlights") > 0)
+check("treesitter cpp query available", #vim.treesitter.query.get_files("cpp", "highlights") > 0)
+
 -- The fzf-lua functions referenced by our keymaps must all exist.
 local fzf_ok, fzf_err = pcall(function()
   local f = require("fzf-lua")

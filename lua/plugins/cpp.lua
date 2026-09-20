@@ -5,7 +5,10 @@ local parsers = { "c", "cpp", "cmake", "make", "ruby", "yaml", "json", "bash", "
 return {
   {
     "nvim-treesitter/nvim-treesitter",
-    event = { "FileType" },
+    -- Upstream nvim-treesitter: "This plugin does not support lazy-loading."
+    -- Load at startup so its parser installer and query symlinks are set up
+    -- before any buffer needs highlighting.
+    eager = true,
     build = function(path)
       -- Build runs before the plugin is loaded, so put it on the rtp first.
       vim.opt.rtp:append(path)
