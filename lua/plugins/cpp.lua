@@ -1,6 +1,11 @@
--- Treesitter: parsers + highlighting. Loaded on FileType (not eager) so the
--- parse stack stays out of the boot path; the first code buffer pulls it in.
-local parsers = { "c", "cpp", "cmake", "make", "ruby", "yaml", "json", "bash", "regex", "sql" }
+-- Treesitter: parsers + highlighting. Loaded eagerly because upstream does not
+-- support lazy-loading; highlighting itself still starts per FileType.
+-- "json" also covers jsonc (bun.lock, tsconfig*.json); jsdoc is an injection in
+-- the javascript/ecma queries, so it belongs to the JS set.
+local parsers = {
+  "c", "cpp", "cmake", "make", "ruby", "yaml", "json", "bash", "regex", "sql",
+  "javascript", "typescript", "tsx", "jsdoc",
+}
 
 return {
   {
@@ -19,6 +24,12 @@ return {
       local function start(buf)
         if vim.bo[buf].buftype ~= "" then return end
         if vim.b[buf].bigfile then return end -- syntax already off; skip parse cost
+        -- Eager load means this can run during startup, before the command-line
+        -- file's FileType fires. vim.treesitter.start() loads an unloaded named
+        -- buffer with :edit, which reads the file before filetype detection is
+        -- wired up, leaving 'filetype' empty (no LSP, no formatting). Wait for
+        -- the FileType autocmd to supply a filetype.
+        if vim.bo[buf].filetype == "" then return end
         -- pcall: no parser for this filetype is normal, not an error.
         pcall(vim.treesitter.start, buf)
       end
@@ -28,8 +39,10 @@ return {
         group = group,
         callback = function(e) start(e.buf) end,
       })
-      -- The FileType event that loaded this plugin already fired for the
-      -- current buffer, so start it directly.
+      -- Covers the buffer already on screen if this runs after its FileType
+      -- fired (e.g. loaded later via :packadd). During eager startup the
+      -- current buffer has no filetype yet, so start() bails and the FileType
+      -- autocmd above handles it.
       start(vim.api.nvim_get_current_buf())
 
       -- Install parsers once the UI is up, or immediately if the plugin was
