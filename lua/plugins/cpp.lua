@@ -1,10 +1,16 @@
 -- Treesitter: parsers + highlighting. Loaded eagerly because upstream does not
 -- support lazy-loading; highlighting itself still starts per FileType.
--- "json" also covers jsonc (bun.lock, tsconfig*.json); jsdoc is an injection in
--- the javascript/ecma queries, so it belongs to the JS set.
+--
+-- Query dependencies are parser entries too, hence "jsdoc" (injection in the
+-- javascript/ecma queries) and "comment" (injection target for comment nodes in
+-- rust/c/ruby/json/yaml/bash/sql/cmake/make).
+-- "json" also covers jsonc (bun.lock, tsconfig*.json).
 local parsers = {
   "c", "cpp", "cmake", "make", "ruby", "yaml", "json", "bash", "regex", "sql",
   "javascript", "typescript", "tsx", "jsdoc",
+  -- Rust set: rust + the comment parser its injections target; toml covers
+  -- Cargo.toml / Cargo.lock.
+  "rust", "comment", "toml",
 }
 
 return {

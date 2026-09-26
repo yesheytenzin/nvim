@@ -50,6 +50,11 @@ check("treesitter cpp query available", #vim.treesitter.query.get_files("cpp", "
 check("treesitter javascript query available", #vim.treesitter.query.get_files("javascript", "highlights") > 0)
 check("treesitter typescript query available", #vim.treesitter.query.get_files("typescript", "highlights") > 0)
 check("treesitter tsx query available", #vim.treesitter.query.get_files("tsx", "highlights") > 0)
+-- Rust set: rust + toml (Cargo.toml/Cargo.lock) + comment (the parser rust
+-- injects its comment nodes into).
+check("treesitter rust query available", #vim.treesitter.query.get_files("rust", "highlights") > 0)
+check("treesitter toml query available", #vim.treesitter.query.get_files("toml", "highlights") > 0)
+check("treesitter comment query available", #vim.treesitter.query.get_files("comment", "highlights") > 0)
 
 -- The fzf-lua functions referenced by our keymaps must all exist.
 local fzf_ok, fzf_err = pcall(function()
