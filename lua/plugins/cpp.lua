@@ -11,6 +11,7 @@ local parsers = {
   -- Rust set: rust + the comment parser its injections target; toml covers
   -- Cargo.toml / Cargo.lock.
   "rust", "comment", "toml",
+  "zig",
 }
 
 return {

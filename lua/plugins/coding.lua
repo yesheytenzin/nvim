@@ -92,7 +92,7 @@ return {
     -- Load only when a file we actually have a server for is opened, not on
     -- every boot. vim.lsp.enable() re-runs FileType detection for already-open
     -- buffers, so the first code file still attaches.
-    ft = { "lua", "ruby", "eruby", "c", "cpp", "objc", "objcpp" },
+    ft = { "lua", "ruby", "eruby", "c", "cpp", "objc", "objcpp", "zig" },
     deps = { "conform.nvim", "mason.nvim", "mason-lspconfig.nvim", "blink.cmp", "fidget.nvim" },
     config = function()
       local capabilities = require("blink.cmp").get_lsp_capabilities()
@@ -117,9 +117,14 @@ return {
         capabilities = capabilities,
         init_options = { enabledFeatures = { diagnostics = true } },
       })
+      vim.lsp.config("zls", {
+        capabilities = capabilities,
+        cmd = { vim.fs.joinpath(vim.fn.stdpath("data"), "zls", "bin", "zls") },
+      })
       vim.lsp.enable("lua_ls")
       vim.lsp.enable("clangd")
       vim.lsp.enable("ruby_lsp")
+      vim.lsp.enable("zls")
       vim.diagnostic.config({
         -- Virtual text defaults off: on large generated/minified buffers it is a
         -- persistent redraw cost. <leader>ud toggles it on (see keymaps.lua).
