@@ -43,6 +43,8 @@ check("treesitter ruby query available", #vim.treesitter.query.get_files("ruby",
 check("treesitter cpp query available", #vim.treesitter.query.get_files("cpp", "highlights") > 0)
 check("treesitter lua query available", #vim.treesitter.query.get_files("lua", "highlights") > 0)
 check("treesitter zig query available", #vim.treesitter.query.get_files("zig", "highlights") > 0)
+check("treesitter bash query available", #vim.treesitter.query.get_files("bash", "highlights") > 0)
+check("treesitter python query available", #vim.treesitter.query.get_files("python", "highlights") > 0)
 -- Rust set: rust + toml (Cargo.toml/Cargo.lock) + comment (the parser rust
 -- injects its comment nodes into).
 check("treesitter rust query available", #vim.treesitter.query.get_files("rust", "highlights") > 0)

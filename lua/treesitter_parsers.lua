@@ -4,7 +4,8 @@
 -- headless prefetch on fresh machines.
 --
 -- Tracks: C/C++ (c, cpp, cmake, make), Ruby/Rails (ruby, embedded_template
--- for eruby, yaml, json), Rust (rust, toml), Zig (zig), Lua (lua).
+-- for eruby, yaml, json), Rust (rust, toml), Zig (zig), Lua (lua),
+-- Bash (bash), Python (python).
 -- "comment" is a query dependency (injection target for comment nodes).
 return {
   "c", "cpp", "cmake", "make",
@@ -12,4 +13,6 @@ return {
   "rust", "comment", "toml",
   "zig",
   "lua",
+  "bash",
+  "python",
 }
