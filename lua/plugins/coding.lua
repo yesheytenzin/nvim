@@ -30,9 +30,11 @@ vim.api.nvim_create_autocmd("LspAttach", {
     if client and client.name == "clangd" then
       map("<leader>ch", "<cmd>ClangdSwitchSourceHeader<cr>", "C++ Switch Header/Source")
     end
-    -- diagnostics: [d / ]d follow vim convention (prev / next)
-    map("[d", function() vim.diagnostic.goto_prev() end, "Prev diagnostic")
-    map("]d", function() vim.diagnostic.goto_next() end, "Next diagnostic")
+    -- diagnostics: [d / ]d follow vim convention (prev / next).
+    -- jump() replaces the deprecated goto_prev/goto_next (removed in 0.13);
+    -- no float popup on jump (was goto's default) — press gl for the float.
+    map("[d", function() vim.diagnostic.jump({ count = -1 }) end, "Prev diagnostic")
+    map("]d", function() vim.diagnostic.jump({ count = 1 }) end, "Next diagnostic")
   end,
 })
 
@@ -85,9 +87,10 @@ return {
         -- Installed once (scripts/bootstrap.lua, or automatically on first
         -- lspconfig load); every later boot is a local version check, no
         -- download when the packages are cached in Mason. Server list owned
-        -- by lua/lsp_manifest.lua — add a row there to add a server.
+        -- by lua/lsp_manifest.lua — add a row there to add a server. Pinned
+        -- versions apply to fresh installs; drift is fixed by bootstrap.sh.
         ensure_installed = vim.tbl_map(function(s)
-          return s.lsp
+          return require("install_util").spec(s.lsp, s.version)
         end, require("lsp_manifest").servers),
         automatic_enable = false,
       })
@@ -159,8 +162,11 @@ return {
         -- Prefetched by scripts/bootstrap.lua. run_on_start = false means
         -- normal boots never touch the network here; use :MasonToolsInstall
         -- (or bootstrap) to fetch on a fresh machine. Tool list owned by
-        -- lua/lsp_manifest.lua — add a row there to add a tool.
-        ensure_installed = require("lsp_manifest").tools,
+        -- lua/lsp_manifest.lua — add a row there to add a tool. Pinned
+        -- versions apply to fresh installs; drift is fixed by bootstrap.sh.
+        ensure_installed = vim.tbl_map(function(t)
+          return { t.name, version = t.version }
+        end, require("lsp_manifest").tools),
         run_on_start = false,
       })
     end,

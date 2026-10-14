@@ -9,13 +9,10 @@ local M = {}
 
 local uv = vim.uv or vim.loop
 local theme_path = vim.fn.expand("~/.local/state/omarchy/current/theme/neovim.lua")
+local pack_util = require("pack")
 
 local installed = {} -- plugin name -> true once packadd'd + setup
 local active_plugin -- name of the theme plugin currently applied
-
-local function repo_basename(src)
-  return (src:gsub("%.git$", ""):match("[^/]+$"))
-end
 
 -- Lua module name for a colorscheme plugin (repo basename is not always the
 -- module: e.g. catppuccin/nvim -> "catppuccin", tokyonight.nvim -> "tokyonight").
@@ -52,7 +49,7 @@ local function parse(spec)
     if s[1] == "LazyVim/LazyVim" then
       colorscheme = (s.opts and s.opts.colorscheme) or colorscheme
     elseif type(s[1]) == "string" then
-      local name = s.name or repo_basename(s[1])
+      local name = s.name or pack_util.basename(s[1])
       plugin = {
         src = s[1],
         name = name,
@@ -64,12 +61,20 @@ local function parse(spec)
   end
   if not colorscheme and plugin then
     -- Pure-lazy spec without a LazyVim marker: infer from the plugin.
+    local inferred = {
+      kanagawa = "kanagawa",
+      tokyonight = "tokyonight-night",
+      catppuccin = "catppuccin",
+      gruvbox = "gruvbox",
+      ["rose-pine"] = "rose-pine-dawn",
+    }
     local base = plugin.name:lower()
-    if base:find("kanagawa") then colorscheme = "kanagawa" end
-    if base:find("tokyonight") then colorscheme = "tokyonight-night" end
-    if base:find("catppuccin") then colorscheme = "catppuccin" end
-    if base:find("gruvbox") then colorscheme = "gruvbox" end
-    if base:find("rose%-pine") then colorscheme = "rose-pine-dawn" end
+    for key, scheme in pairs(inferred) do
+      if base:find(key, 1, true) then
+        colorscheme = scheme
+        break
+      end
+    end
   end
   return plugin, colorscheme
 end
@@ -77,10 +82,7 @@ end
 -- Ensure the theme plugin is installed and sourced (idempotent per session).
 local function ensure(plugin)
   if not plugin then return end
-  local src = plugin.src
-  if not (src:find("://", 1, true) or src:match("^[%w]+:")) then
-    src = "https://github.com/" .. src
-  end
+  local src = pack_util.full_src(plugin.src)
   pcall(vim.pack.add, { { src = src, name = plugin.name, version = plugin.version } }, { load = false, confirm = false })
   if installed[plugin.name] then return end
   installed[plugin.name] = true
@@ -139,11 +141,6 @@ function M.reload()
         vim.g.applied_colorscheme = colorscheme
       end
       vim.cmd("redraw!")
-      -- Reload transparency if the user had it (optional).
-      local transp = vim.fn.stdpath("config") .. "/plugin/after/transparency.lua"
-      if vim.fn.filereadable(transp) == 1 then
-        vim.defer_fn(function() pcall(vim.cmd, "source " .. transp) end, 5)
-      end
     end, 10)
   end)
 end

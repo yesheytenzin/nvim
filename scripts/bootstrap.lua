@@ -25,11 +25,7 @@ pack.load("nvim-treesitter")
 -- ── 1. Treesitter parsers ──────────────────────────────────────────────
 do
   local wanted = require("treesitter_parsers")
-  local tscfg = require("nvim-treesitter.config")
-  local installed = tscfg.get_installed()
-  local missing = vim.tbl_filter(function(p)
-    return not vim.list_contains(installed, p)
-  end, wanted)
+  local missing = require("install_util").ts_missing(wanted)
   if #missing == 0 then
     ok("treesitter parsers (" .. #wanted .. "/" .. #wanted .. " cached)")
   else
@@ -39,9 +35,7 @@ do
     if not done then
       fail("treesitter install timed out: " .. tostring(err))
     else
-      local still_missing = vim.tbl_filter(function(p)
-        return not vim.list_contains(require("nvim-treesitter.config").get_installed(), p)
-      end, wanted)
+      local still_missing = require("install_util").ts_missing(wanted)
       if #still_missing > 0 then
         fail("treesitter parsers still missing: " .. table.concat(still_missing, ", "))
       else
@@ -62,47 +56,50 @@ do
   -- Sync variant blocks, which is what headless mode needs. Tool list owned
   -- by lua/lsp_manifest.lua.
   local tools = require("lsp_manifest").tools
+  local tool_names = vim.tbl_map(function(t)
+    return t.name
+  end, tools)
   local ok_tools, err_tools = pcall(vim.cmd, "MasonToolsInstallSync")
   if not ok_tools then
     fail("MasonToolsInstallSync: " .. tostring(err_tools))
   else
-    ok("mason tools (" .. table.concat(tools, ", ") .. ")")
+    ok("mason tools (" .. table.concat(tool_names, ", ") .. ")")
   end
 
   -- LSP servers owned by mason-lspconfig. Its automatic ensure_installed is
   -- skipped in headless mode, so install the Mason packages explicitly here.
   -- (On normal boots the same ensure_installed covers fresh machines on
   -- first file-open instead.) Server list owned by lua/lsp_manifest.lua.
-  -- Skips packages that are already installed, so repeat runs touch no network.
-  local server_pkgs = vim.tbl_map(function(s)
-    return s.mason
-  end, require("lsp_manifest").servers)
+  -- Drift-aware: absent packages AND version mismatches reinstall the pin,
+  -- so repeat runs touch no network only when everything matches.
+  local servers = require("lsp_manifest").servers
   local mr_ok, mr = pcall(require, "mason-registry")
   if not mr_ok then
     fail("mason-registry unavailable")
   else
+    -- mr.refresh() with a callback is async: park completion in a local and
+    -- block on it. The callback runs synchronously when the registry is
+    -- already cached, so this returns immediately on warm machines.
+    local state = { done = false }
     mr.refresh(function()
-      local missing = vim.tbl_filter(function(name)
-        local po, pkg = pcall(mr.get_package, name)
-        return not (po and pkg:is_installed())
-      end, server_pkgs)
+      local util = require("install_util")
+      local missing = util.mason_drift(mr, servers)
       if #missing == 0 then
-        ok("mason LSP servers (" .. table.concat(server_pkgs, ", ") .. " cached)")
+        local names = vim.tbl_map(function(s)
+          return s.mason
+        end, servers)
+        ok("mason LSP servers (" .. table.concat(names, ", ") .. " cached)")
       else
         log("installing mason LSP servers: " .. table.concat(missing, ", "))
-        local ok_mason, err_mason =
-          pcall(vim.cmd, "MasonInstall " .. table.concat(missing, " "))
+        local ok_mason, err_mason = pcall(vim.cmd, "MasonInstall " .. table.concat(missing, " "))
         if not ok_mason then
           fail("MasonInstall: " .. tostring(err_mason))
         else
+          local names = vim.tbl_map(function(s)
+            return s.mason
+          end, servers)
           local waited = vim.wait(10 * 60 * 1000, function()
-            for _, name in ipairs(missing) do
-              local po, pkg = pcall(mr.get_package, name)
-              if not po or not pkg:is_installed() then
-                return false
-              end
-            end
-            return true
+            return #util.mason_missing(mr, names) == 0
           end)
           if waited then
             ok("mason LSP servers (" .. table.concat(missing, ", ") .. " installed)")
@@ -111,32 +108,34 @@ do
           end
         end
       end
-      _G.__bootstrap_mason_done = true
+      state.done = true
     end)
-    -- mr.refresh() with a callback is async: block until it (and any install
-    -- above) finishes. The callback runs synchronously when the registry is
-    -- already cached, so this returns immediately on warm machines.
-    local refreshed = vim.wait(11 * 60 * 1000, function()
-      return _G.__bootstrap_mason_done == true
-    end)
-    if not refreshed then
+    if not vim.wait(11 * 60 * 1000, function()
+      return state.done
+    end) then
       fail("mason registry refresh timed out")
     end
-    _G.__bootstrap_mason_done = nil
   end
 end
 
 -- ── 3. zls (not a Mason package) ───────────────────────────────────────
 do
+  local pin = require("lsp_manifest").zls.version
   local manual = vim.fs.joinpath(vim.fn.stdpath("data"), "zls", "bin", "zls")
-  if vim.fn.executable(manual) == 1 then
-    ok("zls (manual install at " .. manual .. ")")
-  elseif vim.fn.executable("zls") == 1 then
-    ok("zls (system: " .. vim.fn.exepath("zls") .. ")")
-  else
+  local bin = vim.fn.executable(manual) == 1 and manual
+    or vim.fn.executable("zls") == 1 and vim.fn.exepath("zls")
+    or nil
+  if not bin then
     fail("zls missing: install to "
       .. manual
       .. " (see github.com/zigtools/zls releases) or provide a system zls (e.g. `mise use -g zls`)")
+  else
+    local out = vim.fn.system({ bin, "--version" })
+    if pin and not out:find(pin, 1, true) then
+      fail(("zls version drift: want %s, got %s"):format(pin, vim.trim(out)))
+    else
+      ok("zls (" .. bin .. (pin and (" @ " .. vim.trim(out)) or "") .. ")")
+    end
   end
 end
 

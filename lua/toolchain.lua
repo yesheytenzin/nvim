@@ -27,10 +27,7 @@ vim.api.nvim_create_autocmd("BufWritePost", {
       return
     end
     local wanted = fresh("treesitter_parsers")
-    local installed = require("nvim-treesitter.config").get_installed()
-    local missing = vim.tbl_filter(function(p)
-      return not vim.list_contains(installed, p)
-    end, wanted)
+    local missing = require("install_util").ts_missing(wanted)
     if #missing == 0 then
       vim.notify("Toolchain: parsers already complete", vim.log.levels.INFO)
     else
@@ -60,11 +57,12 @@ vim.api.nvim_create_autocmd("BufWritePost", {
     local pkgs = vim.tbl_map(function(s)
       return s.mason
     end, manifest.servers)
-    vim.list_extend(pkgs, manifest.tools)
-    local missing = vim.tbl_filter(function(name)
-      local ok, pkg = pcall(mr.get_package, name)
-      return not (ok and pkg:is_installed())
-    end, pkgs)
+    vim.list_extend(pkgs, vim.tbl_map(function(t)
+      return t.name
+    end, manifest.tools))
+    -- Presence-only on save: no surprise downgrades from an edit. Version
+    -- drift is flagged by :Toolchain and fixed by scripts/bootstrap.sh.
+    local missing = require("install_util").mason_missing(mr, pkgs)
     if #missing == 0 then
       vim.notify("Toolchain: servers + tools already complete", vim.log.levels.INFO)
     else
@@ -77,25 +75,14 @@ vim.api.nvim_create_autocmd("BufWritePost", {
   end,
 })
 
---- One installed-version lookup, never errors.
-local function installed_version(mr, name)
-  local ok, pkg = pcall(mr.get_package, name)
-  if ok and pkg:is_installed() then
-    local vok, ver = pcall(function()
-      return pkg:get_installed_version()
-    end)
-    if vok then
-      return ver
-    end
-    return "installed"
-  end
-  return nil
-end
-
 --- :Toolchain status view: wanted vs installed for every manifest entry.
+--- Version drift (installed ≠ pin) and Mason packages outside the manifest
+--- are flagged so `MasonToolsClean` candidates are visible, never auto-removed.
 function M.show()
   require("pack").load("mason.nvim")
   local mr_ok, mr = pcall(require, "mason-registry")
+  local util = require("install_util")
+  local manifest = require("lsp_manifest")
   local lines = { "Toolchain — wanted vs installed", "" }
 
   lines[#lines + 1] = "Parsers (" .. #require("treesitter_parsers") .. ")"
@@ -108,26 +95,67 @@ function M.show()
 
   lines[#lines + 1] = ""
   lines[#lines + 1] = "Servers"
-  for _, s in ipairs(require("lsp_manifest").servers) do
-    local ver = mr_ok and installed_version(mr, s.mason) or nil
-    local on_path = vim.fn.executable(s.bin) == 1
-    local state = ver and ("✓ " .. ver) or (on_path and "✓ on PATH (not Mason)" or "✗ missing")
+  for _, s in ipairs(manifest.servers) do
+    local ver = mr_ok and util.installed_version(mr, s.mason) or nil
+    local want = s.version and ("want " .. s.version) or "unpinned"
+    local state = ver == nil and "✗ missing"
+      or ver ~= s.version and ("≠ " .. ver .. " (" .. want .. ") — run bootstrap.sh")
+      or ("✓ " .. ver)
+    if ver == nil and vim.fn.executable(s.bin) == 1 then
+      state = "✓ on PATH (not Mason)"
+    end
     lines[#lines + 1] = ("  %s %s (%s)"):format(state, s.lsp, s.mason)
   end
 
   lines[#lines + 1] = ""
   lines[#lines + 1] = "Tools"
-  for _, tool in ipairs(require("lsp_manifest").tools) do
-    local ver = mr_ok and installed_version(mr, tool) or nil
-    lines[#lines + 1] = ("  %s %s"):format(ver and ("✓ " .. ver) or "✗ missing", tool)
+  for _, tool in ipairs(manifest.tools) do
+    local ver = mr_ok and util.installed_version(mr, tool.name) or nil
+    local state = ver == nil and "✗ missing"
+      or ver ~= tool.version and ("≠ " .. ver .. " (want " .. tool.version .. ") — run bootstrap.sh")
+      or ("✓ " .. ver)
+    lines[#lines + 1] = ("  %s %s"):format(state, tool.name)
   end
 
   lines[#lines + 1] = ""
   local manual = vim.fs.joinpath(vim.fn.stdpath("data"), "zls", "bin", "zls")
-  local zls = vim.fn.executable(manual) == 1 and ("✓ manual (" .. manual .. ")")
-    or vim.fn.executable("zls") == 1 and ("✓ system (" .. vim.fn.exepath("zls") .. ")")
-    or "✗ missing"
-  lines[#lines + 1] = "zls: " .. zls
+  local zls_bin = vim.fn.executable(manual) == 1 and manual
+    or vim.fn.executable("zls") == 1 and vim.fn.exepath("zls")
+    or nil
+  local zls_state = "✗ missing"
+  if zls_bin then
+    local out = vim.trim(vim.fn.system({ zls_bin, "--version" }))
+    local pin = manifest.zls.version
+    zls_state = (not pin or out:find(pin, 1, true)) and ("✓ " .. out .. " (" .. zls_bin .. ")")
+      or ("≠ " .. out .. " (want " .. pin .. ")")
+  end
+  lines[#lines + 1] = "zls: " .. zls_state
+
+  -- Installed Mason packages that no manifest owns: review candidates for
+  -- :MasonToolsClean. Listed only — never removed automatically.
+  if mr_ok then
+    local owned = {}
+    for _, s in ipairs(manifest.servers) do
+      owned[s.mason] = true
+    end
+    for _, t in ipairs(manifest.tools) do
+      owned[t.name] = true
+    end
+    local extra = {}
+    for _, pkg in ipairs(mr.get_installed_packages()) do
+      if not owned[pkg.name] then
+        extra[#extra + 1] = pkg.name
+      end
+    end
+    if #extra > 0 then
+      table.sort(extra)
+      lines[#lines + 1] = ""
+      lines[#lines + 1] = "Mason packages outside the manifest (" .. #extra .. ")"
+      for _, name in ipairs(extra) do
+        lines[#lines + 1] = "  ? " .. name
+      end
+    end
+  end
 
   vim.cmd("belowright 20new")
   local buf = vim.api.nvim_get_current_buf()

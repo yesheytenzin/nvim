@@ -48,11 +48,9 @@ return {
       -- Missing-only: get_installed() covers parser/*.so + queries/*, so when
       -- scripts/bootstrap.lua (or a previous boot) has prefetched everything
       -- this is a pure in-memory check — no curl, no compile, no network.
+      -- Diff logic shared with bootstrap/toolchain via lua/install_util.lua.
       local function ensure_parsers()
-        local installed = require("nvim-treesitter.config").get_installed()
-        local missing = vim.tbl_filter(function(p)
-          return not vim.list_contains(installed, p)
-        end, parsers)
+        local missing = require("install_util").ts_missing(parsers)
         if #missing > 0 then
           require("nvim-treesitter").install(missing)
         end

@@ -45,7 +45,7 @@ vim.opt.termguicolors = true
 vim.opt.signcolumn = "auto" -- appear only when needed
 -- vim.opt.laststatus = 1 -- single statusline per window (stock default)
 vim.opt.splitbelow = true -- predictable splits, no viewport jumps
-vim.opt.laststatus = 2 -- single statusline per window (stock default)
+vim.opt.laststatus = 2 -- always show the statusline
 vim.opt.splitright = true
 -- vim.opt.cmdheight = 0
 vim.opt.shortmess:append("c") -- no "match X of Y" spam during completion
@@ -53,7 +53,6 @@ vim.opt.mouse = "a" -- scrolling/resizing (stock behavior)
 vim.opt.pumheight = 0 -- unbounded completion menu (default)
 
 -- ── Performance (large/minified C++ buffers) ─────────────────────────────
-vim.opt.ttyfast = true
 vim.opt.redrawtime = 1500
 vim.opt.synmaxcol = 300 -- don't highlight super long lines (C++ minified/generated)
 vim.opt.maxmempattern = 20000

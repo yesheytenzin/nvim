@@ -29,6 +29,11 @@ local function full_src(src)
   return "https://github.com/" .. src
 end
 
+-- Shared with lua/theme.lua (omarchy theme bridge), which resolves the same
+-- short specs outside the pack lifecycle.
+M.basename = basename
+M.full_src = full_src
+
 local function plugin_dir(name)
   return vim.fs.joinpath(vim.fn.stdpath("data"), "site", "pack", "core", "opt", name)
 end

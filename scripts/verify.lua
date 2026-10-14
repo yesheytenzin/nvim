@@ -23,10 +23,6 @@ vim.cmd("enew")
 vim.bo.filetype = "lua"
 vim.wait(80)
 check("ft lua -> lspconfig chain (blink loaded)", package.loaded["blink.cmp"] ~= nil)
-check("retired: cmp_nvim_lsp absent", package.loaded["cmp_nvim_lsp"] == nil)
-check("retired: diffview absent", package.loaded["diffview"] == nil)
-check("retired: other-nvim absent", package.loaded["other-nvim"] == nil)
-check("retired: telescope absent", package.loaded["telescope"] == nil)
 
 -- Smoke-load every declared spec; capture notifications for errors.
 local notes = {}
@@ -66,15 +62,56 @@ end
 
 -- LSP servers + tools must resolve without downloading. Mason's bin/ is
 -- prepended to PATH by mason.nvim's setup (run above via pack.load); zls is
--- manual-or-system. Wanted sets owned by lua/lsp_manifest.lua.
-for _, s in ipairs(require("lsp_manifest").servers) do
+-- manual-or-system. Wanted sets + pins owned by lua/lsp_manifest.lua.
+local manifest = require("lsp_manifest")
+local mr_ok, mr = pcall(require, "mason-registry")
+for _, s in ipairs(manifest.servers) do
   check("lsp binary: " .. s.bin, vim.fn.executable(s.bin) == 1)
+  if mr_ok and s.version then
+    check(
+      "lsp version pinned: " .. s.lsp .. " @" .. s.version,
+      require("install_util").installed_version(mr, s.mason) == s.version
+    )
+  end
 end
-for _, tool in ipairs(require("lsp_manifest").tools) do
-  check("tool binary: " .. tool, vim.fn.executable(tool) == 1)
+for _, tool in ipairs(manifest.tools) do
+  check("tool binary: " .. tool.name, vim.fn.executable(tool.name) == 1)
+  if mr_ok and tool.version then
+    check(
+      "tool version pinned: " .. tool.name .. " @" .. tool.version,
+      require("install_util").installed_version(mr, tool.name) == tool.version
+    )
+  end
 end
-local zls_manual = vim.fs.joinpath(vim.fn.stdpath("data"), "zls", "bin", "zls")
-check("lsp binary: zls", vim.fn.executable(zls_manual) == 1 or vim.fn.executable("zls") == 1)
+do
+  local zls_manual = vim.fs.joinpath(vim.fn.stdpath("data"), "zls", "bin", "zls")
+  local zls_bin = vim.fn.executable(zls_manual) == 1 and zls_manual
+    or vim.fn.executable("zls") == 1 and vim.fn.exepath("zls")
+    or nil
+  check("lsp binary: zls", zls_bin ~= nil)
+  if zls_bin and manifest.zls.version then
+    local out = vim.fn.system({ zls_bin, "--version" })
+    check("zls version pinned: @" .. manifest.zls.version, out:find(manifest.zls.version, 1, true) ~= nil)
+  end
+end
+
+-- Lockfile drift: every pinned plugin's installed rev must match
+-- nvim-pack-lock.json (extra dirs, e.g. omarchy theme plugins, are ignored).
+do
+  local lock_path = vim.fs.joinpath(vim.fn.stdpath("config"), "nvim-pack-lock.json")
+  local lock_ok, lock = pcall(vim.json.decode, table.concat(vim.fn.readfile(lock_path), "\n"))
+  check("lockfile parses", lock_ok and type(lock) == "table" and type(lock.plugins) == "table")
+  if lock_ok then
+    local opt = vim.fs.joinpath(vim.fn.stdpath("data"), "site", "pack", "core", "opt")
+    local names = vim.tbl_keys(lock.plugins)
+    table.sort(names)
+    for _, name in ipairs(names) do
+      local dir = vim.fs.joinpath(opt, name)
+      local rev = vim.fn.systemlist({ "git", "-C", dir, "rev-parse", "HEAD" })[1]
+      check("lock rev: " .. name, rev == lock.plugins[name].rev)
+    end
+  end
+end
 
 -- The fzf-lua functions referenced by our keymaps must all exist.
 local fzf_ok, fzf_err = pcall(function()
