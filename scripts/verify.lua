@@ -41,11 +41,8 @@ check("all config() load cleanly", #notes == 0)
 -- (treesitter disables vim syntax, so there is no fallback).
 check("treesitter ruby query available", #vim.treesitter.query.get_files("ruby", "highlights") > 0)
 check("treesitter cpp query available", #vim.treesitter.query.get_files("cpp", "highlights") > 0)
--- JS/TS set: javascript/typescript/tsx parsers plus their ecma/jsx query
--- dependencies (jsdoc is injected from ecma's injections.scm).
-check("treesitter javascript query available", #vim.treesitter.query.get_files("javascript", "highlights") > 0)
-check("treesitter typescript query available", #vim.treesitter.query.get_files("typescript", "highlights") > 0)
-check("treesitter tsx query available", #vim.treesitter.query.get_files("tsx", "highlights") > 0)
+check("treesitter lua query available", #vim.treesitter.query.get_files("lua", "highlights") > 0)
+check("treesitter zig query available", #vim.treesitter.query.get_files("zig", "highlights") > 0)
 -- Rust set: rust + toml (Cargo.toml/Cargo.lock) + comment (the parser rust
 -- injects its comment nodes into).
 check("treesitter rust query available", #vim.treesitter.query.get_files("rust", "highlights") > 0)

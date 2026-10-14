@@ -3,15 +3,13 @@
 -- network when everything is cached) and by scripts/bootstrap.lua for
 -- headless prefetch on fresh machines.
 --
--- Query dependencies are parser entries too, hence "jsdoc" (injection in the
--- javascript/ecma queries) and "comment" (injection target for comment nodes in
--- rust/c/ruby/json/yaml/bash/sql/cmake/make).
--- "json" also covers jsonc (bun.lock, tsconfig*.json).
+-- Tracks: C/C++ (c, cpp, cmake, make), Ruby/Rails (ruby, embedded_template
+-- for eruby, yaml, json), Rust (rust, toml), Zig (zig), Lua (lua).
+-- "comment" is a query dependency (injection target for comment nodes).
 return {
-  "c", "cpp", "cmake", "make", "ruby", "yaml", "json", "bash", "regex", "sql",
-  "javascript", "typescript", "tsx", "jsdoc",
-  -- Rust set: rust + the comment parser its injections target; toml covers
-  -- Cargo.toml / Cargo.lock.
+  "c", "cpp", "cmake", "make",
+  "ruby", "embedded_template", "yaml", "json",
   "rust", "comment", "toml",
   "zig",
+  "lua",
 }

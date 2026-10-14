@@ -54,7 +54,7 @@ return {
     config = function()
       require("conform").setup({
         formatters_by_ft = {
-          ruby = { "rubocop" }, yaml = { "yamlfmt" }, json = { "jq" }, sql = { "sql_formatter" },
+          ruby = { "rubocop" }, yaml = { "yamlfmt" }, json = { "jq" },
           c = { "clang_format" }, cpp = { "clang_format" }, lua = { "stylua" },
         },
         formatters = { rubocop = { timeout_ms = 5000 } },
@@ -101,7 +101,7 @@ return {
     -- Load only when a file we actually have a server for is opened, not on
     -- every boot. vim.lsp.enable() re-runs FileType detection for already-open
     -- buffers, so the first code file still attaches.
-    ft = { "lua", "ruby", "eruby", "c", "cpp", "objc", "objcpp", "zig" },
+    ft = { "lua", "ruby", "eruby", "c", "cpp", "objc", "objcpp", "zig", "rust" },
     deps = { "conform.nvim", "mason.nvim", "mason-lspconfig.nvim", "blink.cmp", "fidget.nvim" },
     config = function()
       local capabilities = require("blink.cmp").get_lsp_capabilities()
@@ -128,6 +128,9 @@ return {
         capabilities = capabilities,
         init_options = { enabledFeatures = { diagnostics = true } },
       })
+      vim.lsp.config("rust_analyzer", {
+        capabilities = capabilities,
+      })
       -- zls is not a Mason package: prefer the manual install at
       -- stdpath('data')/zls/bin/zls (fetched by scripts/bootstrap.lua),
       -- fall back to a system zls (e.g. mise). Skip quietly when absent so a
@@ -142,6 +145,7 @@ return {
       vim.lsp.enable("lua_ls")
       vim.lsp.enable("clangd")
       vim.lsp.enable("ruby_lsp")
+      vim.lsp.enable("rust_analyzer")
       if zls_cmd then
         vim.lsp.enable("zls")
       end
