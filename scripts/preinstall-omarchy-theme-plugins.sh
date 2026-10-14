@@ -1,6 +1,6 @@
 #!/bin/bash
 # Pre-install every colorscheme plugin that Omarchy themes reference in their
-# neovim.lua, into the vim.pack directory. Optional with vim.pack: lua/theme.lua
+# neovim.lua, into the vim.pack directory. Optional with vim.pack: lua/omarchy_theme.lua
 # clones a missing theme plugin on demand, so a switch works without this; the
 # script just front-loads the download so switches are instant.
 # Idempotent: skips plugins already present.

@@ -1,6 +1,6 @@
 -- Shared "wanted vs installed" checks for the toolchain manifests.
 -- Pure helpers (no autocmds/commands on require) so startup code
--- (lua/plugins/cpp.lua), headless prefetch (scripts/bootstrap.lua) and the
+-- (lua/plugins/treesitter.lua), headless prefetch (scripts/bootstrap.lua) and the
 -- live watcher (lua/toolchain.lua) can all use them without side effects.
 local M = {}
 

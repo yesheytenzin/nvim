@@ -1,5 +1,5 @@
 -- Single source of truth for the Treesitter parsers this config needs.
--- Required by lua/plugins/cpp.lua at startup (missing-only install, no
+-- Required by lua/plugins/treesitter.lua at startup (missing-only install, no
 -- network when everything is cached) and by scripts/bootstrap.lua for
 -- headless prefetch on fresh machines.
 --

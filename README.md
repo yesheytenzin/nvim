@@ -17,7 +17,7 @@ Requires `nvim >=0.12`, `git`, `make`, `rg`, `fd`, `clangd`.
 - `scripts/bootstrap.sh` — prefetch Treesitter parsers + Mason LSP/tools once
   per machine so later boots never download (idempotent; `scripts/verify.sh`
   proves the cache is complete)
-- Manifests: `lua/treesitter_parsers.lua` + `lua/lsp_manifest.lua` declare every
+- Manifests: `lua/parser_manifest.lua` + `lua/lsp_manifest.lua` declare every
   wanted parser/server/tool (versions pinned) — saving either file installs
   what was added, and `:Toolchain` (`<leader>ci`) shows wanted vs installed
 - Moving machines: copy the repo, then run `scripts/bootstrap.sh` — do NOT

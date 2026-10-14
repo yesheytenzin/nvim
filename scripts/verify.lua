@@ -54,7 +54,7 @@ check("treesitter comment query available", #vim.treesitter.query.get_files("com
 -- Offline cache: every wanted parser must have a compiled .so under
 -- stdpath('data')/site/parser, otherwise the next boot downloads + compiles
 -- it (see scripts/bootstrap.lua for the prefetch).
-for _, lang in ipairs(require("treesitter_parsers")) do
+for _, lang in ipairs(require("parser_manifest")) do
   local so = vim.fs.joinpath(vim.fn.stdpath("data"), "site", "parser", lang .. ".so")
   check("treesitter parser cached: " .. lang, vim.fn.filereadable(so) == 1)
 end
@@ -69,7 +69,7 @@ for _, s in ipairs(manifest.servers) do
   if mr_ok and s.version then
     check(
       "lsp version pinned: " .. s.lsp .. " @" .. s.version,
-      require("install_util").installed_version(mr, s.mason) == s.version
+      require("manifest_util").installed_version(mr, s.mason) == s.version
     )
   end
 end
@@ -78,7 +78,7 @@ for _, tool in ipairs(manifest.tools) do
   if mr_ok and tool.version then
     check(
       "tool version pinned: " .. tool.name .. " @" .. tool.version,
-      require("install_util").installed_version(mr, tool.name) == tool.version
+      require("manifest_util").installed_version(mr, tool.name) == tool.version
     )
   end
 end

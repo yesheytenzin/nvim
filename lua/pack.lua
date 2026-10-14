@@ -29,7 +29,7 @@ local function full_src(src)
   return "https://github.com/" .. src
 end
 
--- Shared with lua/theme.lua (omarchy theme bridge), which resolves the same
+-- Shared with lua/omarchy_theme.lua (omarchy theme bridge), which resolves the same
 -- short specs outside the pack lifecycle.
 M.basename = basename
 M.full_src = full_src

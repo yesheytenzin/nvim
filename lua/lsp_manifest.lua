@@ -1,7 +1,7 @@
 -- Single source of truth for language servers and tools.
--- Mirrors lua/treesitter_parsers.lua (which owns the parser list).
+-- Mirrors lua/parser_manifest.lua (which owns the parser list).
 -- Add one entry here and every consumer picks it up: mason-lspconfig /
--- mason-tool-installer ensure lists (lua/plugins/coding.lua), headless
+-- mason-tool-installer ensure lists (lua/plugins/lsp.lua), headless
 -- prefetch (scripts/bootstrap.lua), cache checks (scripts/verify.lua), the
 -- :Toolchain status view and save-to-install watcher (lua/toolchain.lua).
 --
@@ -23,7 +23,7 @@ return {
     { lsp = "bashls", mason = "bash-language-server", bin = "bash-language-server", version = "5.8.1" },
   },
   -- Formatters/linters plus clangd (whose LSP client is configured + enabled
-  -- explicitly in coding.lua; only its binary comes from this list).
+  -- explicitly in lsp.lua; only its binary comes from this list).
   tools = {
     { name = "rubocop", version = "1.89.0" },
     { name = "yamlfmt", version = "v0.21.0" },

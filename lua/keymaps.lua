@@ -1,7 +1,7 @@
 -- All global keymaps in one module, grouped by concern. An earlier
 -- remap.lua/keymaps.lua split (Primeagen core vs project) shared one
 -- interface with no seam, so they are merged here. LSP-buffer maps live
--- with the LSP spec in lua/plugins/coding.lua, not here.
+-- with the LSP spec in lua/plugins/lsp.lua, not here.
 vim.g.mapleader = " "
 vim.g.maplocalleader = "\\"
 
@@ -74,4 +74,4 @@ end, { desc = "Source current file" })
 -- Do NOT re-add them here: eager mappings break on fresh `nvim .` startup.
 -- NOTE: no global <leader>ch here: :ClangdSwitchSourceHeader only exists with
 -- clangd attached — a global map errors in ruby/lua/etc buffers. It is set
--- buffer-local on LspAttach when the client is clangd (see lua/plugins/coding.lua).
+-- buffer-local on LspAttach when the client is clangd (see lua/plugins/lsp.lua).

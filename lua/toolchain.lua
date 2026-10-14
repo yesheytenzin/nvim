@@ -1,7 +1,7 @@
 -- Toolchain manifests, made live: :Toolchain shows everything wanted vs
 -- installed (parsers, servers, tools, zls), and saving either manifest file
 -- installs what was just added — no restart, no :MasonToolsInstall.
--- Manifests: lua/treesitter_parsers.lua, lua/lsp_manifest.lua.
+-- Manifests: lua/parser_manifest.lua, lua/lsp_manifest.lua.
 local M = {}
 
 --- Re-require a manifest so save-handlers see the just-written content.
@@ -17,17 +17,17 @@ local group = vim.api.nvim_create_augroup("ConfigToolchain", { clear = true })
 -- filetype to start highlighting with them.
 vim.api.nvim_create_autocmd("BufWritePost", {
   group = group,
-  pattern = "treesitter_parsers.lua",
+  pattern = "parser_manifest.lua",
   callback = function(e)
-    if not e.match:match("lua/treesitter_parsers%.lua$") then
+    if not e.match:match("lua/parser_manifest%.lua$") then
       return
     end
     local ts_ok, ts = pcall(require, "nvim-treesitter")
     if not ts_ok then
       return
     end
-    local wanted = fresh("treesitter_parsers")
-    local missing = require("install_util").ts_missing(wanted)
+    local wanted = fresh("parser_manifest")
+    local missing = require("manifest_util").ts_missing(wanted)
     if #missing == 0 then
       vim.notify("Toolchain: parsers already complete", vim.log.levels.INFO)
     else
@@ -38,7 +38,7 @@ vim.api.nvim_create_autocmd("BufWritePost", {
 })
 
 -- Added servers/tools install in the background via Mason. A new server only
--- attaches after reopen/restart (its lspconfig enable lives in coding.lua,
+-- attaches after reopen/restart (its lspconfig enable lives in lsp.lua,
 -- which runs once at load).
 vim.api.nvim_create_autocmd("BufWritePost", {
   group = group,
@@ -62,7 +62,7 @@ vim.api.nvim_create_autocmd("BufWritePost", {
     end, manifest.tools))
     -- Presence-only on save: no surprise downgrades from an edit. Version
     -- drift is flagged by :Toolchain and fixed by scripts/bootstrap.sh.
-    local missing = require("install_util").mason_missing(mr, pkgs)
+    local missing = require("manifest_util").mason_missing(mr, pkgs)
     if #missing == 0 then
       vim.notify("Toolchain: servers + tools already complete", vim.log.levels.INFO)
     else
@@ -81,14 +81,14 @@ vim.api.nvim_create_autocmd("BufWritePost", {
 function M.show()
   require("pack").load("mason.nvim")
   local mr_ok, mr = pcall(require, "mason-registry")
-  local util = require("install_util")
+  local util = require("manifest_util")
   local manifest = require("lsp_manifest")
   local lines = { "Toolchain — wanted vs installed", "" }
 
-  lines[#lines + 1] = "Parsers (" .. #require("treesitter_parsers") .. ")"
+  lines[#lines + 1] = "Parsers (" .. #require("parser_manifest") .. ")"
   local ts_ok, tscfg = pcall(require, "nvim-treesitter.config")
   local installed = ts_ok and tscfg.get_installed() or {}
-  for _, p in ipairs(require("treesitter_parsers")) do
+  for _, p in ipairs(require("parser_manifest")) do
     local has = vim.list_contains(installed, p)
     lines[#lines + 1] = ("  %s %s"):format(has and "✓" or "✗", p)
   end

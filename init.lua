@@ -15,7 +15,7 @@ require("toolchain")
 
 -- Install + apply the omarchy theme SYNCHRONOUSLY so the first paint is
 -- already themed (no unstyled flash on launch).
-require("theme").load()
+require("omarchy_theme").load()
 
 -- Dev helper: :lua R("keymaps") to hot-reload one module.
 function R(name)

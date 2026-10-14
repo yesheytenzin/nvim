@@ -24,8 +24,8 @@ pack.load("nvim-treesitter")
 
 -- ── 1. Treesitter parsers ──────────────────────────────────────────────
 do
-  local wanted = require("treesitter_parsers")
-  local missing = require("install_util").ts_missing(wanted)
+  local wanted = require("parser_manifest")
+  local missing = require("manifest_util").ts_missing(wanted)
   if #missing == 0 then
     ok("treesitter parsers (" .. #wanted .. "/" .. #wanted .. " cached)")
   else
@@ -35,7 +35,7 @@ do
     if not done then
       fail("treesitter install timed out: " .. tostring(err))
     else
-      local still_missing = require("install_util").ts_missing(wanted)
+      local still_missing = require("manifest_util").ts_missing(wanted)
       if #still_missing > 0 then
         fail("treesitter parsers still missing: " .. table.concat(still_missing, ", "))
       else
@@ -82,7 +82,7 @@ do
     -- already cached, so this returns immediately on warm machines.
     local state = { done = false }
     mr.refresh(function()
-      local util = require("install_util")
+      local util = require("manifest_util")
       local missing = util.mason_drift(mr, servers)
       if #missing == 0 then
         local names = vim.tbl_map(function(s)

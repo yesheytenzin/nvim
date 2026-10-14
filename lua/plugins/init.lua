@@ -1,13 +1,13 @@
 -- Aggregates every plugin spec module into one list for pack.setup().
 -- (The active theme spec is NOT here: lua/plugins/theme.lua is an omarchy-owned
--- symlink handled dynamically by lua/theme.lua.)
+-- symlink handled dynamically by lua/omarchy_theme.lua.)
 local specs = {}
 
 for _, name in ipairs({
   "deps",
-  "coding",
+  "lsp",
   "completion",
-  "cpp",
+  "treesitter",
   "editor",
   "git",
   "harpoon",

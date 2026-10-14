@@ -1,6 +1,6 @@
 -- Project autocmds: filetype indents, auto-cd, netrw, big-file guard, and
 -- Primeagen's trim-on-save. LSP keymaps live with the LSP spec in
--- plugins/coding.lua (same concern, one place).
+-- plugins/lsp.lua (same concern, one place).
 
 -- Ruby/Rails API: 2-space indent, no wrap. Everything else keeps the global
 -- 4-space default from options.lua.

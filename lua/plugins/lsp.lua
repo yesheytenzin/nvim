@@ -91,7 +91,7 @@ return {
         -- by lua/lsp_manifest.lua — add a row there to add a server. Pinned
         -- versions apply to fresh installs; drift is fixed by bootstrap.sh.
         ensure_installed = vim.tbl_map(function(s)
-          return require("install_util").spec(s.lsp, s.version)
+          return require("manifest_util").spec(s.lsp, s.version)
         end, require("lsp_manifest").servers),
         automatic_enable = false,
       })
