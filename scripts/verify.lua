@@ -64,11 +64,15 @@ for _, lang in ipairs(require("treesitter_parsers")) do
   check("treesitter parser cached: " .. lang, vim.fn.filereadable(so) == 1)
 end
 
--- LSP servers must resolve without downloading. Mason's bin/ is prepended to
--- PATH by mason.nvim's setup (run above via pack.load); zls is manual-or-system.
-check("lsp binary: lua-language-server", vim.fn.executable("lua-language-server") == 1)
-check("lsp binary: clangd", vim.fn.executable("clangd") == 1)
-check("lsp binary: ruby-lsp", vim.fn.executable("ruby-lsp") == 1)
+-- LSP servers + tools must resolve without downloading. Mason's bin/ is
+-- prepended to PATH by mason.nvim's setup (run above via pack.load); zls is
+-- manual-or-system. Wanted sets owned by lua/lsp_manifest.lua.
+for _, s in ipairs(require("lsp_manifest").servers) do
+  check("lsp binary: " .. s.bin, vim.fn.executable(s.bin) == 1)
+end
+for _, tool in ipairs(require("lsp_manifest").tools) do
+  check("tool binary: " .. tool, vim.fn.executable(tool) == 1)
+end
 local zls_manual = vim.fs.joinpath(vim.fn.stdpath("data"), "zls", "bin", "zls")
 check("lsp binary: zls", vim.fn.executable(zls_manual) == 1 or vim.fn.executable("zls") == 1)
 
@@ -90,6 +94,20 @@ check("terminal module loads", term_ok and type(term.toggle) == "function")
 check(
   "terminal toggle keymap <leader>ot",
   vim.fn.maparg("<leader>ot", "n") ~= ""
+)
+
+-- Toolchain manifests + status (lua/toolchain.lua, lua/lsp_manifest.lua).
+local tc_ok, tc = pcall(require, "toolchain")
+check("toolchain module loads", tc_ok and type(tc.show) == "function")
+check("toolchain command :Toolchain", vim.fn.exists(":Toolchain") == 2)
+check(
+  "toolchain status keymap <leader>ci",
+  vim.fn.maparg("<leader>ci", "n") ~= ""
+)
+local man_ok, man = pcall(require, "lsp_manifest")
+check(
+  "lsp_manifest servers+tools non-empty",
+  man_ok and #man.servers > 0 and #man.tools > 0
 )
 
 local failed = 0

@@ -59,20 +59,24 @@ do
 
   -- Tools owned by mason-tool-installer (run_on_start = false, so normal
   -- boots never fetch these — only this script and :MasonToolsInstall do).
-  -- Sync variant blocks, which is what headless mode needs.
+  -- Sync variant blocks, which is what headless mode needs. Tool list owned
+  -- by lua/lsp_manifest.lua.
+  local tools = require("lsp_manifest").tools
   local ok_tools, err_tools = pcall(vim.cmd, "MasonToolsInstallSync")
   if not ok_tools then
     fail("MasonToolsInstallSync: " .. tostring(err_tools))
   else
-    ok("mason tools (rubocop, yamlfmt, jq, sql-formatter, clang-format, stylua, clangd)")
+    ok("mason tools (" .. table.concat(tools, ", ") .. ")")
   end
 
   -- LSP servers owned by mason-lspconfig. Its automatic ensure_installed is
   -- skipped in headless mode, so install the Mason packages explicitly here.
   -- (On normal boots the same ensure_installed covers fresh machines on
-  -- first file-open instead.) Skips packages that are already installed, so
-  -- repeat runs touch no network.
-  local server_pkgs = { "lua-language-server", "ruby-lsp" }
+  -- first file-open instead.) Server list owned by lua/lsp_manifest.lua.
+  -- Skips packages that are already installed, so repeat runs touch no network.
+  local server_pkgs = vim.tbl_map(function(s)
+    return s.mason
+  end, require("lsp_manifest").servers)
   local mr_ok, mr = pcall(require, "mason-registry")
   if not mr_ok then
     fail("mason-registry unavailable")

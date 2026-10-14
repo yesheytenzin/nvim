@@ -11,6 +11,7 @@ require("pack").setup(require("plugins"))
 require("remote_clipboard")
 require("autocmds")
 require("terminal")
+require("toolchain")
 
 -- Install + apply the omarchy theme SYNCHRONOUSLY so the first paint is
 -- already themed (no unstyled flash on launch).

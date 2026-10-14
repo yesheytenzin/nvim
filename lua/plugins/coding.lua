@@ -84,8 +84,11 @@ return {
       require("mason-lspconfig").setup({
         -- Installed once (scripts/bootstrap.lua, or automatically on first
         -- lspconfig load); every later boot is a local version check, no
-        -- download when the packages are cached in Mason.
-        ensure_installed = { "lua_ls", "ruby_lsp" },
+        -- download when the packages are cached in Mason. Server list owned
+        -- by lua/lsp_manifest.lua — add a row there to add a server.
+        ensure_installed = vim.tbl_map(function(s)
+          return s.lsp
+        end, require("lsp_manifest").servers),
         automatic_enable = false,
       })
     end,
@@ -155,11 +158,9 @@ return {
       require("mason-tool-installer").setup({
         -- Prefetched by scripts/bootstrap.lua. run_on_start = false means
         -- normal boots never touch the network here; use :MasonToolsInstall
-        -- (or bootstrap) to fetch on a fresh machine.
-        ensure_installed = {
-          "rubocop", "yamlfmt", "jq", "sql-formatter", "clang-format", "stylua",
-          "clangd",
-        },
+        -- (or bootstrap) to fetch on a fresh machine. Tool list owned by
+        -- lua/lsp_manifest.lua — add a row there to add a tool.
+        ensure_installed = require("lsp_manifest").tools,
         run_on_start = false,
       })
     end,
