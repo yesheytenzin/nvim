@@ -43,9 +43,11 @@ vim.opt.ttimeoutlen = 50 -- key-code wait: 10ms drops <M-1> etc over SSH/tmux ji
 -- ── UI (stock Neovim; colorscheme owns highlights, never this file) ──────
 vim.opt.termguicolors = true
 vim.opt.signcolumn = "auto" -- appear only when needed
-vim.opt.laststatus = 1 -- single statusline per window (stock default)
+-- vim.opt.laststatus = 1 -- single statusline per window (stock default)
 vim.opt.splitbelow = true -- predictable splits, no viewport jumps
+vim.opt.laststatus = 2 -- single statusline per window (stock default)
 vim.opt.splitright = true
+-- vim.opt.cmdheight = 0
 vim.opt.shortmess:append("c") -- no "match X of Y" spam during completion
 vim.opt.mouse = "a" -- scrolling/resizing (stock behavior)
 vim.opt.pumheight = 0 -- unbounded completion menu (default)
