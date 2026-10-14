@@ -1,18 +1,9 @@
 -- Treesitter: parsers + highlighting. Loaded eagerly because upstream does not
 -- support lazy-loading; highlighting itself still starts per FileType.
 --
--- Query dependencies are parser entries too, hence "jsdoc" (injection in the
--- javascript/ecma queries) and "comment" (injection target for comment nodes in
--- rust/c/ruby/json/yaml/bash/sql/cmake/make).
--- "json" also covers jsonc (bun.lock, tsconfig*.json).
-local parsers = {
-  "c", "cpp", "cmake", "make", "ruby", "yaml", "json", "bash", "regex", "sql",
-  "javascript", "typescript", "tsx", "jsdoc",
-  -- Rust set: rust + the comment parser its injections target; toml covers
-  -- Cargo.toml / Cargo.lock.
-  "rust", "comment", "toml",
-  "zig",
-}
+-- The parser list lives in lua/treesitter_parsers.lua so the startup path and
+-- scripts/bootstrap.lua (headless prefetch) share one source.
+local parsers = require("treesitter_parsers")
 
 return {
   {
@@ -54,7 +45,18 @@ return {
 
       -- Install parsers once the UI is up, or immediately if the plugin was
       -- pulled in after startup (e.g. a code file opened later).
-      local function ensure_parsers() require("nvim-treesitter").install(parsers) end
+      -- Missing-only: get_installed() covers parser/*.so + queries/*, so when
+      -- scripts/bootstrap.lua (or a previous boot) has prefetched everything
+      -- this is a pure in-memory check — no curl, no compile, no network.
+      local function ensure_parsers()
+        local installed = require("nvim-treesitter.config").get_installed()
+        local missing = vim.tbl_filter(function(p)
+          return not vim.list_contains(installed, p)
+        end, parsers)
+        if #missing > 0 then
+          require("nvim-treesitter").install(missing)
+        end
+      end
       if vim.v.vim_did_init == 1 then
         ensure_parsers()
       else

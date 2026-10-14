@@ -56,6 +56,22 @@ check("treesitter rust query available", #vim.treesitter.query.get_files("rust",
 check("treesitter toml query available", #vim.treesitter.query.get_files("toml", "highlights") > 0)
 check("treesitter comment query available", #vim.treesitter.query.get_files("comment", "highlights") > 0)
 
+-- Offline cache: every wanted parser must have a compiled .so under
+-- stdpath('data')/site/parser, otherwise the next boot downloads + compiles
+-- it (see scripts/bootstrap.lua for the prefetch).
+for _, lang in ipairs(require("treesitter_parsers")) do
+  local so = vim.fs.joinpath(vim.fn.stdpath("data"), "site", "parser", lang .. ".so")
+  check("treesitter parser cached: " .. lang, vim.fn.filereadable(so) == 1)
+end
+
+-- LSP servers must resolve without downloading. Mason's bin/ is prepended to
+-- PATH by mason.nvim's setup (run above via pack.load); zls is manual-or-system.
+check("lsp binary: lua-language-server", vim.fn.executable("lua-language-server") == 1)
+check("lsp binary: clangd", vim.fn.executable("clangd") == 1)
+check("lsp binary: ruby-lsp", vim.fn.executable("ruby-lsp") == 1)
+local zls_manual = vim.fs.joinpath(vim.fn.stdpath("data"), "zls", "bin", "zls")
+check("lsp binary: zls", vim.fn.executable(zls_manual) == 1 or vim.fn.executable("zls") == 1)
+
 -- The fzf-lua functions referenced by our keymaps must all exist.
 local fzf_ok, fzf_err = pcall(function()
   local f = require("fzf-lua")

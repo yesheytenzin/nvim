@@ -14,3 +14,6 @@ Requires `nvim >=0.12`, `git`, `make`, `rg`, `fd`, `clangd`.
 
 - `:lua vim.pack.update()` — update plugins (no `:Pack`/`:Lazy` command; vim.pack is Lua-only)
 - The lockfile is `nvim-pack-lock.json`
+- `scripts/bootstrap.sh` — prefetch Treesitter parsers + Mason LSP/tools once
+  per machine so later boots never download (idempotent; `scripts/verify.sh`
+  proves the cache is complete)

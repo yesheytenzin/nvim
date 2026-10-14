@@ -82,7 +82,10 @@ return {
     -- already runs internally. Disable it and enable servers explicitly below.
     config = function()
       require("mason-lspconfig").setup({
-        ensure_installed = { "lua_ls" },
+        -- Installed once (scripts/bootstrap.lua, or automatically on first
+        -- lspconfig load); every later boot is a local version check, no
+        -- download when the packages are cached in Mason.
+        ensure_installed = { "lua_ls", "ruby_lsp" },
         automatic_enable = false,
       })
     end,
@@ -110,6 +113,8 @@ return {
         -- --clang-tidy runs tidy checks on every open C++ file and is the usual
         -- source of lag in large codebases, so it is off by default. Opt back in
         -- per project with a .clangd (Diagnostics:) or a project overlay.
+        -- "clangd" resolves via Mason's bin/ (prepended to PATH by mason.nvim)
+        -- or a system clangd; no download when already installed.
         cmd = { "clangd", "--background-index", "--background-index-priority=low", "--header-insertion=never" },
         filetypes = { "c", "cpp", "objc", "objcpp" },
       })
@@ -117,14 +122,23 @@ return {
         capabilities = capabilities,
         init_options = { enabledFeatures = { diagnostics = true } },
       })
-      vim.lsp.config("zls", {
-        capabilities = capabilities,
-        cmd = { vim.fs.joinpath(vim.fn.stdpath("data"), "zls", "bin", "zls") },
-      })
+      -- zls is not a Mason package: prefer the manual install at
+      -- stdpath('data')/zls/bin/zls (fetched by scripts/bootstrap.lua),
+      -- fall back to a system zls (e.g. mise). Skip quietly when absent so a
+      -- missing Zig toolchain never breaks the other servers.
+      local zls_manual = vim.fs.joinpath(vim.fn.stdpath("data"), "zls", "bin", "zls")
+      local zls_cmd = vim.fn.executable(zls_manual) == 1 and { zls_manual }
+        or vim.fn.executable("zls") == 1 and { "zls" }
+        or nil
+      if zls_cmd then
+        vim.lsp.config("zls", { capabilities = capabilities, cmd = zls_cmd })
+      end
       vim.lsp.enable("lua_ls")
       vim.lsp.enable("clangd")
       vim.lsp.enable("ruby_lsp")
-      vim.lsp.enable("zls")
+      if zls_cmd then
+        vim.lsp.enable("zls")
+      end
       vim.diagnostic.config({
         -- Virtual text defaults off: on large generated/minified buffers it is a
         -- persistent redraw cost. <leader>ud toggles it on (see keymaps.lua).
@@ -139,6 +153,9 @@ return {
     cmd = { "MasonToolsInstall", "MasonToolsUpdate", "MasonToolsClean" },
     config = function()
       require("mason-tool-installer").setup({
+        -- Prefetched by scripts/bootstrap.lua. run_on_start = false means
+        -- normal boots never touch the network here; use :MasonToolsInstall
+        -- (or bootstrap) to fetch on a fresh machine.
         ensure_installed = {
           "rubocop", "yamlfmt", "jq", "sql-formatter", "clang-format", "stylua",
           "clangd",
