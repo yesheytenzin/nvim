@@ -10,6 +10,7 @@ require("pack").setup(require("plugins"))
 -- Self-registers its deferred setup on VeryLazy; safe to require eagerly.
 require("remote_clipboard")
 require("autocmds")
+require("terminal")
 
 -- Install + apply the omarchy theme SYNCHRONOUSLY so the first paint is
 -- already themed (no unstyled flash on launch).

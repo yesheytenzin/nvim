@@ -84,6 +84,14 @@ local fzf_ok, fzf_err = pcall(function()
 end)
 check("fzf-lua keymap API present" .. (fzf_ok and "" or (": " .. tostring(fzf_err))), fzf_ok)
 
+-- In-buffer terminal (lua/terminal.lua, built-in :terminal, no plugin).
+local term_ok, term = pcall(require, "terminal")
+check("terminal module loads", term_ok and type(term.toggle) == "function")
+check(
+  "terminal toggle keymap <leader>ot",
+  vim.fn.maparg("<leader>ot", "n") ~= ""
+)
+
 local failed = 0
 for _, r in ipairs(results) do
   if not r.ok then failed = failed + 1 end

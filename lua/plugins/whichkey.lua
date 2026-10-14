@@ -26,6 +26,7 @@ return {
           { "<leader>r", group = "Rails/Refactor" },
           { "<leader>m", group = "Merge" },
           { "<leader>u", group = "UI/Toggle" },
+          { "<leader>o", group = "Open/Terminal" },
           { "<leader>t", group = "Trouble" },
           { "<leader>z", group = "Zen" },
         },
