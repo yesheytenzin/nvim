@@ -27,4 +27,3 @@ foo.*
 # Uncomment to ignore and let omarchy recreate symlink on each machine:
 # lua/plugins/theme.lua
 *.bak
-lua/config/lazy.lua.pre-lazyvim-bak
