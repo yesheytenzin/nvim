@@ -7,32 +7,26 @@ return {
     cond = function() return vim.fn.executable("fzf") == 1 end,
     cmd = "FzfLua",
     keys = {
-      { "<leader>pf", "<cmd>FzfLua files<cr>", desc = "Find Files" },
-      { "<leader>pg", "<cmd>FzfLua live_grep<cr>", desc = "Grep" },
-      { "<leader>pb", "<cmd>FzfLua buffers<cr>", desc = "Buffers" },
-      { "<leader>ph", "<cmd>FzfLua helptags<cr>", desc = "Help" },
-      { "<leader>po", "<cmd>FzfLua oldfiles<cr>", desc = "Old Files" },
-      { "<leader>pt", "<cmd>FzfLua lsp_document_symbols<cr>", desc = "Symbols (LSP)" },
-      -- Primeagen word-grep group: lazy keys keep fzf-lua unloaded until use.
+      { "<leader><space>", "<cmd>FzfLua files<cr>", desc = "Find Files" },
+      { "<leader>ff", "<cmd>FzfLua files<cr>", desc = "Find Files" },
+      { "<leader>fg", "<cmd>FzfLua git_files<cr>", desc = "Find Git Files" },
+      { "<leader>fb", "<cmd>FzfLua buffers<cr>", desc = "Buffers" },
+      { "<leader>,", "<cmd>FzfLua buffers<cr>", desc = "Buffers" },
+      { "<leader>sh", "<cmd>FzfLua helptags<cr>", desc = "Help Pages" },
+      { "<leader>fr", "<cmd>FzfLua oldfiles<cr>", desc = "Recent Files" },
+      { "<leader>sg", "<cmd>FzfLua live_grep<cr>", desc = "Grep" },
       {
-        "<leader>ps",
-        function()
-          local q = vim.fn.input("Grep > ")
-          if q == nil or q == "" then return end
-          require("fzf-lua").grep({ search = q })
-        end,
-        desc = "Grep prompt",
-      },
-      {
-        "<leader>pws",
+        "<leader>sw",
         function() require("fzf-lua").grep_cword() end,
         desc = "Grep word under cursor",
       },
       {
-        "<leader>pWs",
+        "<leader>sW",
         function() require("fzf-lua").grep_cWORD() end,
         desc = "Grep WORD under cursor",
       },
+      { "<leader>ss", "<cmd>FzfLua lsp_document_symbols<cr>", desc = "Document Symbols" },
+      { "<leader>sS", "<cmd>FzfLua lsp_workspace_symbols<cr>", desc = "Workspace Symbols" },
       {
         "<leader>fd",
         function() require("fzf-lua").files({ cwd = vim.fn.expand("%:p:h") }) end,

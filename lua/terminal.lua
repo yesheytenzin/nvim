@@ -1,5 +1,5 @@
 -- In-buffer terminal on the built-in :terminal: no plugin, no download.
--- <leader>ot toggles one reusable split below; terminal-mode maps mirror the
+-- <leader>ft and <C-/> toggle one reusable split below; terminal-mode maps mirror the
 -- normal-mode window keys so the split never traps you.
 local M = {}
 
@@ -46,6 +46,10 @@ vim.api.nvim_create_autocmd("TermOpen", {
     vim.keymap.set("t", "<C-j>", [[<C-\><C-n><C-w>j]], opts)
     vim.keymap.set("t", "<C-k>", [[<C-\><C-n><C-w>k]], opts)
     vim.keymap.set("t", "<C-l>", [[<C-\><C-n><C-w>l]], opts)
+    vim.keymap.set("t", "<C-/>", function()
+      vim.cmd("stopinsert")
+      M.toggle()
+    end, opts)
   end,
 })
 
@@ -60,6 +64,7 @@ vim.api.nvim_create_autocmd("WinClosed", {
   end,
 })
 
-vim.keymap.set("n", "<leader>ot", M.toggle, { desc = "Terminal toggle (split)" })
+vim.keymap.set("n", "<leader>ft", M.toggle, { desc = "Terminal toggle (split)" })
+vim.keymap.set("n", "<C-/>", M.toggle, { desc = "Terminal toggle (split)" })
 
 return M

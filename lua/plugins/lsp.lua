@@ -4,10 +4,6 @@
 -- Buffer-local LSP keymaps. Top-level (not inside a spec's config) so they
 -- exist from startup: LspAttach can fire for buffers opened before the
 -- lspconfig spec has had a chance to load.
--- NOTE: <leader>w (save) and <leader>d (delete) are bare GLOBAL maps, so in
--- LSP buffers vim waits timeoutlen to disambiguate <leader>w vs <leader>ws
--- (and <leader>d vs <leader>ds). That short pause on save/delete in code
--- buffers is the price of keeping Primeagen's ws/ds mnemonics.
 local LspGroup = vim.api.nvim_create_augroup("ConfigLsp", { clear = true })
 vim.api.nvim_create_autocmd("LspAttach", {
   group = LspGroup,
@@ -17,22 +13,19 @@ vim.api.nvim_create_autocmd("LspAttach", {
     end
     map("gd", vim.lsp.buf.definition, "Goto definition")
     map("gD", vim.lsp.buf.declaration, "Goto declaration")
-    map("gi", vim.lsp.buf.implementation, "Goto implementation")
+    map("gI", vim.lsp.buf.implementation, "Goto implementation")
     map("gy", vim.lsp.buf.type_definition, "Goto type definition")
     map("gr", vim.lsp.buf.references, "References")
     map("K", vim.lsp.buf.hover, "Hover")
-    map("<leader>rn", vim.lsp.buf.rename, "Rename")
     map("<leader>ca", vim.lsp.buf.code_action, "Code action")
-    map("<leader>ds", vim.lsp.buf.document_symbol, "Document symbols")
-    map("<leader>ws", vim.lsp.buf.workspace_symbol, "Workspace symbol")
-    map("<leader>ls", function() vim.lsp.buf.signature_help() end, "Signature help")
+    map("gK", function() vim.lsp.buf.signature_help() end, "Signature help")
     local client = vim.lsp.get_client_by_id(e.data.client_id)
     if client and client.name == "clangd" then
       map("<leader>ch", "<cmd>ClangdSwitchSourceHeader<cr>", "C++ Switch Header/Source")
     end
     -- diagnostics: [d / ]d follow vim convention (prev / next).
     -- jump() replaces the deprecated goto_prev/goto_next (removed in 0.13);
-    -- no float popup on jump (was goto's default) — press gl for the float.
+    -- no float popup on jump. Press <leader>cd for the float.
     map("[d", function() vim.diagnostic.jump({ count = -1 }) end, "Prev diagnostic")
     map("]d", function() vim.diagnostic.jump({ count = 1 }) end, "Next diagnostic")
   end,
@@ -46,7 +39,7 @@ return {
     cmd = { "ConformInfo" },
     keys = {
       {
-        "<leader>cF",
+        "<leader>cf",
         function() require("conform").format({ async = true, lsp_fallback = true }) end,
         desc = "Format buffer",
       },
@@ -190,7 +183,7 @@ return {
     cmd = "IncRename",
     keys = {
       {
-        "<leader>cR",
+        "<leader>cr",
         function()
           return ":IncRename " .. vim.fn.expand("<cword>")
         end,

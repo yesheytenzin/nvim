@@ -13,14 +13,21 @@ return {
     },
   },
 
-  -- 2) Trouble — diagnostics list — <leader>tt, [t ]t
+  -- 2) Trouble diagnostics, symbols, references, and list views.
   {
     "folke/trouble.nvim",
     cmd = "Trouble",
     keys = {
-      { "<leader>tt", function() require("trouble").toggle() end, desc = "Trouble toggle" },
-      { "]t", function() require("trouble").next({ skip_groups = true, jump = true }) end, desc = "Trouble next" },
-      { "[t", function() require("trouble").previous({ skip_groups = true, jump = true }) end, desc = "Trouble prev" },
+      { "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>", desc = "Diagnostics" },
+      { "<leader>xX", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", desc = "Buffer Diagnostics" },
+      { "<leader>cs", "<cmd>Trouble symbols toggle focus=false<cr>", desc = "Symbols" },
+      {
+        "<leader>cS",
+        "<cmd>Trouble lsp toggle focus=false win.position=right<cr>",
+        desc = "LSP References/Definitions",
+      },
+      { "<leader>xL", "<cmd>Trouble loclist toggle<cr>", desc = "Location List" },
+      { "<leader>xQ", "<cmd>Trouble qflist toggle<cr>", desc = "Quickfix List" },
     },
     config = function() require("trouble").setup({}) end,
   },

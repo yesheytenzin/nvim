@@ -15,11 +15,9 @@ return {
     config = function()
       require("blink.cmp").setup({
         keymap = {
-          -- super-tab: Tab selects-and-accepts / jumps snippets (matches the
-          -- old cmp setup); C-p/C-n select, C-Space show, C-e hide, C-k signature.
-          preset = "super-tab",
-          -- cmp confirmed on <CR>; super-tab leaves <CR> unbound.
-          ["<CR>"] = { "accept", "fallback" },
+          -- Enter accepts completion. C-p/C-n select, C-Space shows the menu,
+          -- C-e hides it, and C-k shows signature help.
+          preset = "enter",
         },
         sources = {
           default = { "lsp", "path", "snippets", "buffer" },
