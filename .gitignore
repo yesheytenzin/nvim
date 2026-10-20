@@ -16,6 +16,5 @@ spell/
 .sessions/
 .ruby-lsp/
 data/
-doc/tags
 
 .DS_Store
