@@ -90,8 +90,18 @@ do
   local runs = 0
   local pack
   pack = load_pack({
-    { "test/a", config = function() pack.load("b") end },
-    { "test/b", config = function() runs = runs + 1 end },
+    {
+      "test/a",
+      config = function()
+        pack.load("b")
+      end,
+    },
+    {
+      "test/b",
+      config = function()
+        runs = runs + 1
+      end,
+    },
     { "test/root", deps = { "a", "b" } },
   })
   check("loader skips dependencies loaded during config", pack.load("root") and runs == 1)
