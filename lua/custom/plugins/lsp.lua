@@ -193,25 +193,47 @@ return {
       -- Neovim never issues those requests on its own, so the index keeps the
       -- copy of the file that was on disk when it was opened: a method you
       -- just wrote stays invisible to completion until the file is reopened.
-      --
-      -- Asking for documentSymbol once the buffer settles makes the server
-      -- refresh that index, which is what makes the new method show up.
       local refresh_group = vim.api.nvim_create_augroup("ConfigRubyLspIndex", { clear = true })
       local refresh_timer = vim.uv.new_timer()
+      local refreshed = {} --- @type table<integer, integer> buffer -> changedtick
 
-      --- Ask ruby-lsp to re-index the open file.
-      --- The request flushes pending didChange notifications first, so the
-      --- server re-indexes what is in the buffer now, not what it had on disk.
+      --- Make ruby-lsp re-index the open file.
+      ---
+      --- Re-opening the document gives the server a fresh copy of it, and a
+      --- fresh document has no "last edit" for ruby-lsp to reason about, so
+      --- the re-index happens no matter what the last keystroke was. The
+      --- notification flushes pending didChange first, so the server indexes
+      --- what is in the buffer now, not what it had on disk.
+      ---
+      --- The documentSymbol request is what makes the server do the re-index;
+      --- its response is discarded.
       --- @param bufnr integer
       local function refresh_index(bufnr)
+        if not vim.api.nvim_buf_is_valid(bufnr) then return end
+        local tick = vim.b[bufnr].changedtick
+        if refreshed[bufnr] == tick then return end -- buffer is unchanged
+        refreshed[bufnr] = tick
+
         for _, client in ipairs(vim.lsp.get_clients { bufnr = bufnr }) do
           if client.name == "ruby_lsp" then
-            client:request("textDocument/documentSymbol", { textDocument = { uri = vim.uri_from_bufnr(bufnr) } }, function() end, bufnr)
+            local uri = vim.uri_from_bufnr(bufnr)
+            local text = table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), "\n")
+            client:notify("textDocument/didOpen", {
+              textDocument = {
+                uri = uri,
+                languageId = vim.bo[bufnr].filetype,
+                version = (vim.lsp.util.buf_versions or {})[bufnr] or 0,
+                text = text,
+              },
+            })
+            client:request("textDocument/documentSymbol", { textDocument = { uri = uri } }, function() end, bufnr)
             return
           end
         end
       end
 
+      -- Once typing settles: the method is usually written before it is
+      -- called, so this is the moment the index has to catch up.
       vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
         group = refresh_group,
         pattern = { "*.rb", "*.rake" },
@@ -225,6 +247,8 @@ return {
         end,
       })
 
+      -- Leaving insert mode and saving cover the case where a definition and
+      -- its call are typed in one go: the refresh then happens after both.
       vim.api.nvim_create_autocmd({ "InsertLeave", "BufWritePost" }, {
         group = refresh_group,
         pattern = { "*.rb", "*.rake" },
