@@ -70,4 +70,56 @@ function M.mason_drift(mr, entries)
   return need
 end
 
+--- Ruby versions mise has installed.
+--- @return { version: string, install_path: string }[]
+function M.mise_rubies()
+  local out = vim.fn.system({ "mise", "ls", "ruby", "--json" })
+  local ok, list = pcall(vim.json.decode, out)
+  if not ok or type(list) ~= "table" then
+    return {}
+  end
+  return vim.tbl_filter(function(r)
+    return r.installed == true and type(r.version) == "string"
+  end, list)
+end
+
+--- Highest version of the Ruby gem `name` installed for `ruby_version`, or
+--- nil when that Ruby does not have the gem. mise's `x` runs the command
+--- with that Ruby, so this answers for the Ruby the LSP would actually
+--- load, not for whatever `gem` happens to be first on PATH.
+--- @param ruby_version string
+--- @param name string
+--- @return string?
+function M.gem_version(ruby_version, name)
+  local out = vim.fn.system({ "mise", "x", "ruby@" .. ruby_version, "--", "gem", "list", "--exact", name })
+  if vim.v.shell_error ~= 0 then
+    return nil
+  end
+  local best
+  for line in out:gmatch("[^\r\n]+") do
+    for v in line:gmatch("%(([%d%.]+)") do
+      if not best or vim.version.gt(v, best) then
+        best = v
+      end
+    end
+  end
+  return best
+end
+
+--- Rubies (from `mise_rubies`) that do not have the gem `name` at the
+--- pinned `version`. A gem with native extensions needs one copy per Ruby:
+--- the compiled .so is ABI-specific and the wrong one is rejected.
+--- @param name string
+--- @param version string
+--- @return string[] ruby_versions
+function M.gem_drift(name, version)
+  local need = {}
+  for _, r in ipairs(M.mise_rubies()) do
+    if M.gem_version(r.version, name) ~= version then
+      need[#need + 1] = r.version
+    end
+  end
+  return need
+end
+
 return M

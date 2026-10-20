@@ -118,8 +118,15 @@ return {
         cmd = { "clangd", "--background-index", "--background-index-priority=low", "--header-insertion=never" },
         filetypes = { "c", "cpp", "objc", "objcpp" },
       })
+      -- ruby_lsp is a mise-managed gem, not a Mason package (see the
+      -- `gems` section of lua/lsp_manifest.lua): it has to run under the
+      -- Ruby the project pins, and mise's shim resolves "ruby-lsp" to that
+      -- Ruby's copy. Mason must not provide it — its wrapper puts the
+      -- package's gem dir first in GEM_PATH, which shadows the project's
+      -- own gems with ABI-mismatched native extensions and kills the boot.
       vim.lsp.config("ruby_lsp", {
         capabilities = capabilities,
+        cmd = { "ruby-lsp" },
         init_options = { enabledFeatures = { diagnostics = true } },
       })
       vim.lsp.config("rust_analyzer", {

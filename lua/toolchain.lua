@@ -107,6 +107,21 @@ function M.show()
     lines[#lines + 1] = ("  %s %s (%s)"):format(state, s.lsp, s.mason)
   end
 
+  -- Ruby gems owned by mise: one copy per Ruby, at the pinned version. A
+  -- Ruby whose copy is missing or stale breaks the LSP for projects pinned
+  -- to it, so the rubies that need attention are named.
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "Gems (mise — one copy per Ruby)"
+  for _, g in ipairs(manifest.gems or {}) do
+    local states = {}
+    for _, r in ipairs(util.mise_rubies()) do
+      local v = util.gem_version(r.version, g.name)
+      local mark = v == g.version and "✓" or (v and ("≠ " .. v) or "✗")
+      states[#states + 1] = ("%s %s"):format(r.version, mark)
+    end
+    lines[#lines + 1] = ("  %s (%s): %s"):format(g.name, g.version, table.concat(states, "  "))
+  end
+
   lines[#lines + 1] = ""
   lines[#lines + 1] = "Tools"
   for _, tool in ipairs(manifest.tools) do

@@ -118,7 +118,42 @@ do
   end
 end
 
--- ── 3. zls (not a Mason package) ───────────────────────────────────────
+-- ── 3. Ruby gems owned by mise (not Mason) ─────────────────────────────
+-- ruby_lsp runs under the Ruby the project pins (.ruby-version), so the gem
+-- and the native extensions it ships (prism, rbs) must live in that Ruby.
+-- One copy per Ruby: a compiled .so is ABI-specific, and the wrong one is
+-- rejected ("extensions are not built") instead of used.
+do
+  local gems = require("lsp_manifest").gems
+  local util = require("manifest_util")
+  local rubies = util.mise_rubies()
+  if #rubies == 0 then
+    fail("mise reports no installed rubies")
+  end
+  for _, g in ipairs(gems) do
+    local missing = util.gem_drift(g.name, g.version)
+    if #missing == 0 then
+      ok(("gem %s (%s) in %d ruby(s)"):format(g.name, g.version, #rubies))
+    else
+      log(("installing gem %s %s into ruby %s"):format(g.name, g.version, table.concat(missing, ", ")))
+      local failed = {}
+      for _, v in ipairs(missing) do
+        local cmd = { "mise", "x", "ruby@" .. v, "--", "gem", "install", g.name, "-v", g.version, "--no-document" }
+        vim.fn.system(cmd)
+        if vim.v.shell_error ~= 0 then
+          failed[#failed + 1] = v
+        end
+      end
+      if #failed > 0 then
+        fail(("gem %s %s failed for ruby %s"):format(g.name, g.version, table.concat(failed, ", ")))
+      else
+        ok(("gem %s (%s) installed into %d ruby(s)"):format(g.name, g.version, #missing))
+      end
+    end
+  end
+end
+
+-- ── 4. zls (not a Mason package) ───────────────────────────────────────
 do
   local pin = require("lsp_manifest").zls.version
   local manual = vim.fs.joinpath(vim.fn.stdpath("data"), "zls", "bin", "zls")

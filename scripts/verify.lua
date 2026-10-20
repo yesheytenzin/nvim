@@ -82,6 +82,16 @@ for _, tool in ipairs(manifest.tools) do
     )
   end
 end
+-- Ruby gems owned by mise: one copy per Ruby, at the pinned version. A gem
+-- that ships native extensions (prism, rbs) built for another Ruby is
+-- rejected at require time, so a missing copy in the active Ruby is what
+-- breaks the LSP.
+for _, g in ipairs(manifest.gems or {}) do
+  check("gem binary: " .. g.bin, vim.fn.executable(g.bin) == 1)
+  local drift = require("manifest_util").gem_drift(g.name, g.version)
+  local where = #drift > 0 and (" (missing in: " .. table.concat(drift, ", ") .. ")") or ""
+  check("gem version pinned: " .. g.name .. " @" .. g.version .. where, #drift == 0)
+end
 do
   local zls_manual = vim.fs.joinpath(vim.fn.stdpath("data"), "zls", "bin", "zls")
   local zls_bin = vim.fn.executable(zls_manual) == 1 and zls_manual
