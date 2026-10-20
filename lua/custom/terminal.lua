@@ -25,8 +25,15 @@ function M.toggle()
     vim.cmd("belowright sbuffer " .. term_buf)
   else
     vim.cmd("belowright 12split")
-    vim.cmd("terminal " .. (os.getenv("SHELL") or vim.o.shell))
     term_buf = vim.api.nvim_get_current_buf()
+    local shell = os.getenv("SHELL") or vim.o.shell
+    local ok, job = pcall(vim.fn.jobstart, { shell }, { term = true })
+    if not ok or job <= 0 then
+      term_buf = nil
+      vim.notify(("terminal: failed to start %s: %s"):format(shell, job), vim.log.levels.ERROR)
+      vim.cmd("close")
+      return
+    end
   end
   term_win = vim.api.nvim_get_current_win()
   vim.cmd("startinsert")

@@ -2,13 +2,10 @@
 name: Check Lua Formatting
 on:
   push:
-    branches:
-      - master
   pull_request:
 
 jobs:
   stylua-check:
-    if: github.repository == 'nvim-lua/kickstart.nvim'
     name: Stylua Check
     runs-on: ubuntu-latest
     steps:
@@ -18,5 +15,5 @@ jobs:
         uses: JohnnyMorganz/stylua-action@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          version: latest
+          version: 2.5.2
           args: --check .

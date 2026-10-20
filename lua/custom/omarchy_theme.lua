@@ -18,7 +18,9 @@ local active_plugin -- name of the theme plugin currently applied
 -- Lua module name for a colorscheme plugin (repo basename is not always the
 -- module: e.g. catppuccin/nvim -> "catppuccin", tokyonight.nvim -> "tokyonight").
 local function module_name(base)
-  if base == "nvim" then return "catppuccin" end
+  if base == "nvim" then
+    return "catppuccin"
+  end
   return (base:gsub("%.nvim$", ""):gsub("%-nvim$", ""))
 end
 
@@ -28,7 +30,9 @@ end
 
 local function unload_modules(name)
   local root = plugin_dir(name) .. "/lua"
-  if vim.fn.isdirectory(root) ~= 1 then return end
+  if vim.fn.isdirectory(root) ~= 1 then
+    return
+  end
   for _, file in ipairs(vim.fn.glob(root .. "/**/*.lua", false, true)) do
     local rel = file:sub(#root + 2):gsub("%.lua$", ""):gsub("/", ".")
     package.loaded[rel] = nil
@@ -40,10 +44,22 @@ end
 -- symlink at lua/custom/plugins/theme.lua; reading the state file avoids carrying a
 -- machine-specific symlink into this repo.
 local function read_spec()
-  local chunk = loadfile(theme_path)
-  if not chunk then return nil end
+  local chunk, load_err = loadfile(theme_path)
+  if not chunk then
+    if vim.fn.filereadable(theme_path) == 1 then
+      vim.notify("theme: cannot load Omarchy theme: " .. tostring(load_err), vim.log.levels.ERROR)
+    end
+    return nil
+  end
   local ok, spec = pcall(chunk)
-  if not ok or type(spec) ~= "table" then return nil end
+  if not ok then
+    vim.notify("theme: invalid Omarchy theme: " .. tostring(spec), vim.log.levels.ERROR)
+    return nil
+  end
+  if type(spec) ~= "table" then
+    vim.notify("theme: Omarchy theme must return a table", vim.log.levels.ERROR)
+    return nil
+  end
   return spec
 end
 
@@ -86,29 +102,60 @@ end
 
 -- Ensure the theme plugin is installed and sourced (idempotent per session).
 local function ensure(plugin)
-  if not plugin then return end
+  if not plugin then
+    return true
+  end
   local src = pack_util.full_src(plugin.src)
-  pcall(vim.pack.add, { { src = src, name = plugin.name, version = plugin.version } }, { load = false, confirm = false })
-  if installed[plugin.name] then return end
-  installed[plugin.name] = true
-  pcall(vim.cmd.packadd, plugin.name)
+  local add_ok, add_err = pcall(
+    vim.pack.add,
+    { { src = src, name = plugin.name, version = plugin.version } },
+    { load = false, confirm = false }
+  )
+  if not add_ok then
+    vim.notify(("theme: cannot install %s: %s"):format(plugin.name, add_err), vim.log.levels.ERROR)
+    return false
+  end
+  if installed[plugin.name] then
+    return true
+  end
+  local load_ok, load_err = pcall(vim.cmd.packadd, plugin.name)
+  if not load_ok then
+    vim.notify(("theme: cannot load %s: %s"):format(plugin.name, load_err), vim.log.levels.ERROR)
+    return false
+  end
   if plugin.opts then
     local ok, mod = pcall(require, plugin.module)
-    if ok and type(mod) == "table" and type(mod.setup) == "function" then
-      pcall(mod.setup, plugin.opts)
+    if not ok or type(mod) ~= "table" or type(mod.setup) ~= "function" then
+      vim.notify(("theme: %s has no setup function"):format(plugin.module), vim.log.levels.ERROR)
+      return false
+    end
+    local setup_ok, setup_err = pcall(mod.setup, plugin.opts)
+    if not setup_ok then
+      vim.notify(("theme: setup failed for %s: %s"):format(plugin.name, setup_err), vim.log.levels.ERROR)
+      return false
     end
   end
+  installed[plugin.name] = true
+  return true
 end
 
 --- Install + apply the current omarchy theme synchronously (called from init).
 function M.load()
   local spec = read_spec()
-  if not spec then return end
+  if not spec then
+    return
+  end
   local plugin, colorscheme = parse(spec)
-  if not colorscheme then return end
-  ensure(plugin)
+  if not colorscheme then
+    return
+  end
+  if not ensure(plugin) then
+    return
+  end
   active_plugin = plugin and plugin.name or active_plugin
-  if vim.g.applied_colorscheme == colorscheme then return end
+  if vim.g.applied_colorscheme == colorscheme then
+    return
+  end
   if pcall(vim.cmd.colorscheme, colorscheme) then
     vim.g.applied_colorscheme = colorscheme
   end
@@ -118,20 +165,30 @@ end
 function M.reload()
   vim.schedule(function()
     local spec = read_spec()
-    if not spec then return end
+    if not spec then
+      return
+    end
     local plugin, colorscheme = parse(spec)
-    if not colorscheme then return end
+    if not colorscheme then
+      return
+    end
 
     local previous = active_plugin
-    ensure(plugin)
+    if not ensure(plugin) then
+      return
+    end
     active_plugin = plugin and plugin.name or active_plugin
 
     -- Boot already applied this exact theme; re-clearing highlights would
     -- flash an unstyled frame post-launch.
-    if vim.g.applied_colorscheme == colorscheme then return end
+    if vim.g.applied_colorscheme == colorscheme then
+      return
+    end
 
     vim.cmd("highlight clear")
-    if vim.fn.exists("syntax_on") == 1 then vim.cmd("syntax reset") end
+    if vim.fn.exists("syntax_on") == 1 then
+      vim.cmd("syntax reset")
+    end
 
     -- Drop the previous theme's lua modules so its colors are rebuilt.
     if previous and previous ~= active_plugin then
@@ -156,7 +213,9 @@ vim.api.nvim_create_autocmd("User", {
   pattern = "VeryLazy",
   once = true,
   callback = function()
-    if vim.g.applied_colorscheme == nil then M.load() end
+    if vim.g.applied_colorscheme == nil then
+      M.load()
+    end
   end,
 })
 
@@ -174,13 +233,20 @@ do
     local poll = uv.new_fs_poll()
     if poll then
       poll:start(theme_path, 500, function(err, prev, curr)
-        if err then return end
+        if err then
+          return
+        end
         if prev and curr and curr.mtime and prev.mtime and curr.mtime.sec ~= prev.mtime.sec then
           M.reload()
         end
       end)
       vim.api.nvim_create_autocmd("VimLeavePre", {
-        callback = function() pcall(function() poll:stop(); poll:close() end) end,
+        callback = function()
+          pcall(function()
+            poll:stop()
+            poll:close()
+          end)
+        end,
       })
     end
   end

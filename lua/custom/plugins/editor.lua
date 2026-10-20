@@ -29,7 +29,9 @@ return {
       { "<leader>xL", "<cmd>Trouble loclist toggle<cr>", desc = "Location List" },
       { "<leader>xQ", "<cmd>Trouble qflist toggle<cr>", desc = "Quickfix List" },
     },
-    config = function() require("trouble").setup({}) end,
+    config = function()
+      require("trouble").setup({})
+    end,
   },
 
   -- 3) Cloak — hide secrets in .env* (Primeagen cloak.lua)
@@ -68,8 +70,8 @@ return {
           require("nvim-treesitter-textobjects.select").select_textobject(query, "textobjects")
         end
       end
-      vim.keymap.set({ "x", "o" }, "af", select "@function.outer", { desc = "Around function" })
-      vim.keymap.set({ "x", "o" }, "if", select "@function.inner", { desc = "Inside function" })
+      vim.keymap.set({ "x", "o" }, "af", select("@function.outer"), { desc = "Around function" })
+      vim.keymap.set({ "x", "o" }, "if", select("@function.inner"), { desc = "Inside function" })
     end,
   },
 

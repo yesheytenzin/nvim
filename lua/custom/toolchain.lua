@@ -11,6 +11,11 @@ local function fresh(name)
   return require(name)
 end
 
+local function is_manifest(path, name)
+  local expected = vim.fs.joinpath(vim.fn.stdpath("config"), "lua", "custom", name)
+  return vim.fs.normalize(path) == vim.fs.normalize(expected)
+end
+
 local group = vim.api.nvim_create_augroup("ConfigToolchain", { clear = true })
 
 -- Added parser names install in the background; reopen buffers of that
@@ -19,14 +24,14 @@ vim.api.nvim_create_autocmd("BufWritePost", {
   group = group,
   pattern = "parser_manifest.lua",
   callback = function(e)
-    if not e.match:match("lua/parser_manifest%.lua$") then
+    if not is_manifest(e.match, "parser_manifest.lua") then
       return
     end
     local ts_ok, ts = pcall(require, "nvim-treesitter")
     if not ts_ok then
       return
     end
-    local wanted = fresh("parser_manifest")
+    local wanted = fresh("custom.parser_manifest")
     local missing = require("custom.manifest_util").ts_missing(wanted)
     if #missing == 0 then
       vim.notify("Toolchain: parsers already complete", vim.log.levels.INFO)
@@ -44,22 +49,27 @@ vim.api.nvim_create_autocmd("BufWritePost", {
   group = group,
   pattern = "lsp_manifest.lua",
   callback = function(e)
-    if not e.match:match("lua/lsp_manifest%.lua$") then
+    if not is_manifest(e.match, "lsp_manifest.lua") then
       return
     end
-    require("custom.pack").load("mason.nvim")
+    if not require("custom.pack").load("mason.nvim") then
+      return
+    end
     local mr_ok, mr = pcall(require, "mason-registry")
     if not mr_ok then
       vim.notify("Toolchain: mason-registry unavailable", vim.log.levels.ERROR)
       return
     end
-    local manifest = fresh("lsp_manifest")
+    local manifest = fresh("custom.lsp_manifest")
     local pkgs = vim.tbl_map(function(s)
       return s.mason
     end, manifest.servers)
-    vim.list_extend(pkgs, vim.tbl_map(function(t)
-      return t.name
-    end, manifest.tools))
+    vim.list_extend(
+      pkgs,
+      vim.tbl_map(function(t)
+        return t.name
+      end, manifest.tools)
+    )
     -- Presence-only on save: no surprise downgrades from an edit. Version
     -- drift is flagged by :Toolchain and fixed by scripts/bootstrap.sh.
     local missing = require("custom.manifest_util").mason_missing(mr, pkgs)

@@ -6,6 +6,8 @@ local specs = {}
 for _, name in ipairs({
   "deps",
   "ui",
+  "formatting",
+  "tooling",
   "lsp",
   "completion",
   "treesitter",

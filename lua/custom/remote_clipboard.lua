@@ -116,7 +116,9 @@ end
 vim.api.nvim_create_autocmd("User", {
   pattern = "VeryLazy",
   once = true,
-  callback = function() require("custom.remote_clipboard").setup() end,
+  callback = function()
+    require("custom.remote_clipboard").setup()
+  end,
 })
 
 return M

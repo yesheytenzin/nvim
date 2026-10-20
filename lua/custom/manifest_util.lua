@@ -9,7 +9,9 @@ local M = {}
 --- @return string[] missing
 function M.ts_missing(wanted)
   local ok, ts = pcall(require, "nvim-treesitter")
-  if not ok then return wanted end
+  if not ok then
+    return wanted
+  end
   local installed = ts.get_installed("parsers")
   return vim.tbl_filter(function(p)
     return not vim.list_contains(installed, p)

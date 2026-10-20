@@ -8,9 +8,17 @@
 -- Bash (bash), Python (python).
 -- "comment" is a query dependency (injection target for comment nodes).
 return {
-  "c", "cpp", "cmake", "make",
-  "ruby", "embedded_template", "yaml", "json",
-  "rust", "comment", "toml",
+  "c",
+  "cpp",
+  "cmake",
+  "make",
+  "ruby",
+  "embedded_template",
+  "yaml",
+  "json",
+  "rust",
+  "comment",
+  "toml",
   "zig",
   "lua",
   "bash",

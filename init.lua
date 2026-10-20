@@ -23,29 +23,29 @@
 vim.loader.enable()
 
 -- Options and leader keys must exist before any plugin loads.
-require 'custom.options'
-require 'custom.keymaps'
+require("custom.options")
+require("custom.keymaps")
 
 -- Behavior modules that register autocmds/commands. They are independent of
 -- the plugin loader, but load before it so file-read guards are in place.
-require 'custom.autocmds'
-require 'custom.terminal'
-require 'custom.remote_clipboard'
-require 'custom.toolchain'
+require("custom.autocmds")
+require("custom.terminal")
+require("custom.remote_clipboard")
+require("custom.toolchain")
 
 -- Native plugin manager (vim.pack) with keys/cmd/ft/event triggers.
-require('custom.pack').setup(require 'custom.plugins')
+require("custom.pack").setup(require("custom.plugins"))
 
 -- Install + apply the omarchy theme synchronously so the first paint is
 -- already themed (no unstyled flash on launch). Falls back to rose-pine in
 -- lua/custom/plugins/themes.lua when omarchy has no active theme.
-require('custom.omarchy_theme').load()
+require("custom.omarchy_theme").load()
 
--- Dev helper: :lua R("custom.keymaps") to hot-reload one module.
-function R(name)
-  require('custom.pack').load 'plenary.nvim'
-  require('plenary.reload').reload_module(name)
-end
+vim.api.nvim_create_user_command("ConfigReload", function(opts)
+  if require("custom.pack").load("plenary.nvim") then
+    require("plenary.reload").reload_module(opts.args)
+  end
+end, { nargs = 1, desc = "Reload a Lua config module" })
 
 -- Optional kickstart examples are still available. They add plugins directly
 -- with vim.pack and are independent of the lazy loader above:

@@ -20,14 +20,20 @@ return {
     config = function()
       local group = vim.api.nvim_create_augroup("ConfigTreesitter", { clear = true })
       local function start(buf)
-        if vim.bo[buf].buftype ~= "" then return end
-        if vim.b[buf].bigfile then return end -- syntax already off; skip parse cost
+        if vim.bo[buf].buftype ~= "" then
+          return
+        end
+        if vim.b[buf].bigfile then
+          return
+        end -- syntax already off; skip parse cost
         -- Eager load means this can run during startup, before the command-line
         -- file's FileType fires. vim.treesitter.start() loads an unloaded named
         -- buffer with :edit, which reads the file before filetype detection is
         -- wired up, leaving 'filetype' empty (no LSP, no formatting). Wait for
         -- the FileType autocmd to supply a filetype.
-        if vim.bo[buf].filetype == "" then return end
+        if vim.bo[buf].filetype == "" then
+          return
+        end
         -- pcall: no parser for this filetype is normal, not an error.
         pcall(vim.treesitter.start, buf)
       end
@@ -35,7 +41,9 @@ return {
       -- wasted work. Setting 'filetype' is what triggers highlighting.
       vim.api.nvim_create_autocmd("FileType", {
         group = group,
-        callback = function(e) start(e.buf) end,
+        callback = function(e)
+          start(e.buf)
+        end,
       })
       -- Covers the buffer already on screen if this runs after its FileType
       -- fired (e.g. loaded later via :packadd). During eager startup the

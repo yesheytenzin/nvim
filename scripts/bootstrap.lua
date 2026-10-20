@@ -161,9 +161,11 @@ do
     or vim.fn.executable("zls") == 1 and vim.fn.exepath("zls")
     or nil
   if not bin then
-    fail("zls missing: install to "
-      .. manual
-      .. " (see github.com/zigtools/zls releases) or provide a system zls (e.g. `mise use -g zls`)")
+    fail(
+      "zls missing: install to "
+        .. manual
+        .. " (see github.com/zigtools/zls releases) or provide a system zls (e.g. `mise use -g zls`)"
+    )
   else
     local out = vim.fn.system({ bin, "--version" })
     if pin and not out:find(pin, 1, true) then

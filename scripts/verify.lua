@@ -168,17 +168,21 @@ check("textobject af map", vim.fn.maparg("af", "x") ~= "")
 check("textobject if map", vim.fn.maparg("if", "x") ~= "")
 
 -- Conform must resolve the Lua formatter without downloading at format time.
-check(
-  "conform stylua for lua",
-  vim.tbl_contains(require("conform").list_formatters_for_buffer(0), "stylua")
-)
+check("conform stylua for lua", vim.tbl_contains(require("conform").list_formatters_for_buffer(0), "stylua"))
 
 -- The fzf-lua functions referenced by our keymaps must all exist.
 local fzf_ok, fzf_err = pcall(function()
   local f = require("fzf-lua")
   for _, m in ipairs({
-    "files", "live_grep", "buffers", "helptags", "oldfiles",
-    "lsp_document_symbols", "grep", "grep_cword", "grep_cWORD",
+    "files",
+    "live_grep",
+    "buffers",
+    "helptags",
+    "oldfiles",
+    "lsp_document_symbols",
+    "grep",
+    "grep_cword",
+    "grep_cWORD",
   }) do
     assert(type(f[m]) == "function", "fzf-lua." .. m .. " missing")
   end
@@ -188,32 +192,23 @@ check("fzf-lua keymap API present" .. (fzf_ok and "" or (": " .. tostring(fzf_er
 -- In-buffer terminal (lua/custom/terminal.lua, built-in :terminal, no plugin).
 local term_ok, term = pcall(require, "custom.terminal")
 check("terminal module loads", term_ok and type(term.toggle) == "function")
-check(
-  "terminal toggle keymap <leader>ot",
-  vim.fn.maparg("<leader>ot", "n") ~= ""
-)
-check(
-  "terminal toggle keymap <leader>ft",
-  vim.fn.maparg("<leader>ft", "n") ~= ""
-)
+check("terminal toggle keymap <leader>ot", vim.fn.maparg("<leader>ot", "n") ~= "")
+check("terminal toggle keymap <leader>ft", vim.fn.maparg("<leader>ft", "n") ~= "")
 
 -- Toolchain manifests + status (lua/custom/toolchain.lua, lua/custom/lsp_manifest.lua).
 local tc_ok, tc = pcall(require, "custom.toolchain")
 check("toolchain module loads", tc_ok and type(tc.show) == "function")
 check("toolchain command :Toolchain", vim.fn.exists(":Toolchain") == 2)
-check(
-  "toolchain status keymap <leader>ci",
-  vim.fn.maparg("<leader>ci", "n") ~= ""
-)
+check("config reload command :ConfigReload", vim.fn.exists(":ConfigReload") == 2)
+check("toolchain status keymap <leader>ci", vim.fn.maparg("<leader>ci", "n") ~= "")
 local man_ok, man = pcall(require, "custom.lsp_manifest")
-check(
-  "lsp_manifest servers+tools non-empty",
-  man_ok and #man.servers > 0 and #man.tools > 0
-)
+check("lsp_manifest servers+tools non-empty", man_ok and #man.servers > 0 and #man.tools > 0)
 
 local failed = 0
 for _, r in ipairs(results) do
-  if not r.ok then failed = failed + 1 end
+  if not r.ok then
+    failed = failed + 1
+  end
   io.write((r.ok and "PASS " or "FAIL ") .. r.label .. "\n")
 end
 for _, n in ipairs(notes) do

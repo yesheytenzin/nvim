@@ -12,7 +12,7 @@
 local M = {}
 
 local specs = {} --- @type table<string, table>
-local loaded = {} --- @type table<string, boolean|nil>
+local states = {} --- @type table<string, "registered"|"loading"|"loaded"|"failed">
 local cmd_index = {} --- @type table<string, string>
 
 local group = vim.api.nvim_create_augroup("ConfigPack", { clear = true })
@@ -42,40 +42,106 @@ end
 -- vim.pack does internally and source those explicitly so after/ hooks run.
 local function source_after_plugin(name)
   for _, file in ipairs(vim.fn.glob(plugin_dir(name) .. "/after/plugin/**/*.{vim,lua}", false, true)) do
-    pcall(vim.cmd.source, file)
+    local ok, err = pcall(vim.cmd.source, file)
+    if not ok then
+      return false, err
+    end
   end
+  return true
 end
 
---- Load a plugin (and its deps) if not already loaded. Idempotent.
+local function load_plan(name)
+  local plan = {}
+  local visiting = {}
+  local planned = {}
+
+  local function visit(current)
+    local spec = specs[current]
+    if not spec or spec.enabled == false or states[current] == "failed" then
+      return false, ("dependency unavailable: %s"):format(current)
+    end
+    if states[current] == "loading" then
+      return false, ("dependency is already loading: %s"):format(current)
+    end
+    if states[current] == "loaded" or planned[current] then
+      return true
+    end
+    if visiting[current] then
+      return false, ("dependency cycle at %s"):format(current)
+    end
+
+    visiting[current] = true
+    for _, dep in ipairs(spec.deps or {}) do
+      local ok, err = visit(dep)
+      if not ok then
+        return false, err
+      end
+    end
+    visiting[current] = nil
+    planned[current] = true
+    plan[#plan + 1] = current
+    return true
+  end
+
+  local ok, err = visit(name)
+  return ok and plan or nil, err
+end
+
+local function fail(name, stage, err)
+  states[name] = "failed"
+  vim.notify(("pack: %s failed for %s: %s"):format(stage, name, err), vim.log.levels.ERROR)
+  return false
+end
+
+--- Load a plugin and its dependencies. Successful and failed loads are idempotent.
 --- @param name string
 --- @return boolean
 function M.load(name)
-  if loaded[name] then
+  if states[name] == "loaded" then
     return true
   end
-  local spec = specs[name]
-  if not spec or spec.enabled == false then
+  if states[name] == "failed" then
     return false
   end
-  loaded[name] = true
-
-  for _, dep in ipairs(spec.deps or {}) do
-    M.load(dep)
+  local requested = specs[name]
+  if not requested or requested.enabled == false then
+    return false
   end
-
-  local ok, err = pcall(vim.cmd.packadd, name)
-  if not ok then
-    loaded[name] = nil
-    vim.notify(("pack: cannot load %s: %s"):format(name, err), vim.log.levels.ERROR)
+  local plan, plan_err = load_plan(name)
+  if not plan then
+    if specs[name] then
+      states[name] = "failed"
+    end
+    vim.notify(("pack: cannot load %s: %s"):format(name, plan_err), vim.log.levels.ERROR)
     return false
   end
 
-  source_after_plugin(name)
+  for _, current in ipairs(plan) do
+    if states[current] ~= "loaded" then
+      if states[current] == "failed" or states[current] == "loading" then
+        return false
+      end
+      local spec = specs[current]
+      states[current] = "loading"
 
-  if type(spec.config) == "function" then
-    local ok2, err2 = pcall(spec.config)
-    if not ok2 then
-      vim.notify(("pack: config error in %s: %s"):format(name, err2), vim.log.levels.ERROR)
+      local ok, err = pcall(vim.cmd.packadd, current)
+      if not ok then
+        return fail(current, "packadd", err)
+      end
+
+      local after_ok, after_err = source_after_plugin(current)
+      if not after_ok then
+        return fail(current, "after/plugin", after_err)
+      end
+
+      if type(spec.config) == "function" then
+        local config_ok, config_err = pcall(spec.config)
+        if not config_ok then
+          return fail(current, "config", config_err)
+        end
+      end
+
+      states[current] = "loaded"
     end
   end
   return true
@@ -130,7 +196,9 @@ local function install_ft(name, fts)
   vim.api.nvim_create_autocmd("FileType", {
     group = group,
     pattern = fts,
-    callback = function() M.load(name) end,
+    callback = function()
+      M.load(name)
+    end,
   })
 end
 
@@ -146,15 +214,25 @@ local function install_events(name, events)
     vim.api.nvim_create_autocmd(ev, {
       group = group,
       pattern = pattern,
-      callback = function() M.load(name) end,
+      callback = function()
+        M.load(name)
+      end,
     })
   end
 end
 
 --- @param list table[] aggregated plugin specs
 function M.setup(list)
+  vim.api.nvim_clear_autocmds({ group = group })
+  local previous_specs = specs
+  local previous_states = states
+  specs = {}
+  states = {}
+  cmd_index = {}
+
   -- Register the build hook before the first add() so install-time builds run.
   vim.api.nvim_create_autocmd("PackChanged", {
+    group = group,
     callback = function(ev)
       local spec = specs[ev.data.spec.name]
       if spec and spec.build and (ev.data.kind == "install" or ev.data.kind == "update") then
@@ -189,6 +267,16 @@ function M.setup(list)
       enabled = enabled,
       eager = s.eager,
     }
+    local previous_state = previous_states[name]
+    if
+      previous_specs[name]
+      and previous_specs[name].src == specs[name].src
+      and (previous_state == "loaded" or previous_state == "failed")
+    then
+      states[name] = previous_state
+    else
+      states[name] = "registered"
+    end
     if enabled ~= false then
       adds[#adds + 1] = { src = full_src(s[1]), name = name, version = s.version or s.branch }
     end
@@ -236,10 +324,18 @@ function M.setup(list)
   for _, s in ipairs(list) do
     local name = s.name or basename(s[1])
     if specs[name].enabled ~= false then
-      if s.keys then install_keys(name, s.keys) end
-      if s.cmd then install_commands(name, s.cmd) end
-      if s.ft then install_ft(name, s.ft) end
-      if s.event then install_events(name, s.event) end
+      if s.keys then
+        install_keys(name, s.keys)
+      end
+      if s.cmd then
+        install_commands(name, s.cmd)
+      end
+      if s.ft then
+        install_ft(name, s.ft)
+      end
+      if s.event then
+        install_events(name, s.event)
+      end
     end
   end
 

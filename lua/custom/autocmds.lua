@@ -6,7 +6,11 @@
 -- 4-space default from options.lua.
 vim.api.nvim_create_autocmd("FileType", {
   pattern = { "ruby", "eruby", "yaml" },
-  callback = function() vim.opt_local.shiftwidth = 2; vim.opt_local.tabstop = 2; vim.opt_local.expandtab = true end,
+  callback = function()
+    vim.opt_local.shiftwidth = 2
+    vim.opt_local.tabstop = 2
+    vim.opt_local.expandtab = true
+  end,
 })
 
 -- Auto-cd to the current buffer's project root (Gemfile/.git). vim.fs.root just checks
@@ -20,9 +24,13 @@ vim.api.nvim_create_autocmd("BufEnter", {
   group = AutoCdGroup,
   pattern = "*",
   callback = function(e)
-    if vim.bo[e.buf].buftype ~= "" or vim.bo[e.buf].filetype == "netrw" then return end
+    if vim.bo[e.buf].buftype ~= "" or vim.bo[e.buf].filetype == "netrw" then
+      return
+    end
     local name = vim.api.nvim_buf_get_name(e.buf)
-    if name == "" or name:match("^%w+://") then return end
+    if name == "" or name:match("^%w+://") then
+      return
+    end
     local root = vim.fs.root(e.buf, { ".git", "Gemfile", "compile_commands.json", "CMakeLists.txt" })
     if root and root ~= vim.fn.getcwd(0) then
       vim.cmd.lcd({ args = { root }, mods = { silent = true } })
@@ -83,8 +91,12 @@ vim.api.nvim_create_autocmd("BufWritePre", {
   group = PrimeagenGroup,
   pattern = "*",
   callback = function(e)
-    if vim.b[e.buf].bigfile then return end
-    if vim.bo[e.buf].buftype ~= "" then return end
+    if vim.b[e.buf].bigfile then
+      return
+    end
+    if vim.bo[e.buf].buftype ~= "" then
+      return
+    end
     vim.cmd([[silent! keeppatterns keepjumps %s/\s\+$//e]])
   end,
 })

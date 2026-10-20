@@ -24,12 +24,13 @@ Requires `nvim >=0.12`, `git`, `make`, `rg`, `fd`, `fzf`, `clangd`,
 
 | Path | Purpose |
 |---|---|
-| `init.lua` | startup order only: options → keymaps → plugins → behavior |
+| `init.lua` | startup order: options, keymaps, behavior hooks, plugin loader, theme |
 | `lua/custom/options.lua` | Primeagen editing defaults, UI, performance |
 | `lua/custom/keymaps.lua` | global keymaps (movement, clipboard, windows, project) |
 | `lua/custom/autocmds.lua` | project-root `lcd`, Ruby/YAML indents, big-file guard, trim-on-save |
 | `lua/custom/pack.lua` | `vim.pack` + lazy triggers and per-plugin `config()` |
 | `lua/custom/plugins/*.lua` | plugin specs, aggregated by `plugins/init.lua` |
+| `lua/custom/lsp/*.lua` | LSP attach maps, server policy, and Ruby index refresh |
 | `lua/custom/terminal.lua` | reusable in-buffer terminal (<leader>ft / <leader>ot / <C-/>) |
 | `lua/custom/remote_clipboard.lua` | OSC 52 + `wl-copy` for tmux/SSH |
 | `lua/custom/omarchy_theme.lua` | Omarchy theme bridge + hot reload; rose-pine fallback |
@@ -47,17 +48,22 @@ Requires `nvim >=0.12`, `git`, `make`, `rg`, `fd`, `fzf`, `clangd`,
 - **Rails:** vim-rails navigation (`<leader>ra/rA/rm/rc/rM/rv`) and ruby_lsp under the project's mise Ruby
 - **LSP:** `lua_ls`, `clangd`, `ruby_lsp`, `rust_analyzer`, `pyright`, `bashls`, `zls`; diagnostics virtual text off by default (`<leader>ud` toggles)
 - **Formatting:** conform with rubocop, yamlfmt, jq, clang-format, stylua, shfmt; manual `<leader>cf`
-- **Completion:** blink.cmp (`enter` preset, buffer + path + snippets), friendly-snippets via native `vim.snippet`
+- **Completion:** blink.cmp (`enter` preset, LSP preferred over path, snippets + buffer fallbacks), friendly-snippets via native `vim.snippet`
 - **Theme:** Omarchy-managed colorscheme with live reload; rose-pine-moon fallback
 
 ## Commands
 
 - `:lua vim.pack.update()` — update plugins (vim.pack is Lua-only)
 - `scripts/bootstrap.sh` — idempotent prefetch of parsers, Mason servers/tools, Ruby gems, zls check
-- `scripts/verify.sh` — startup time, lazy-trigger checks, parser/LSP/tool pins, lockfile revisions
+- `scripts/check-behavior.sh` — isolated loader, manifest, completion, and terminal behavior checks
+- `scripts/verify.sh` — focused tests, startup, lazy triggers, parser/LSP/tool pins, and lockfile revisions
 - `scripts/preinstall-omarchy-theme-plugins.sh` — prefetch every Omarchy theme colorscheme (optional; switches work without it)
 - `:Toolchain` (`<leader>ci`) — wanted vs installed parsers/servers/tools, drift report
-- `:lua R("custom.keymaps")` — hot-reload one module during development
+- `:ConfigReload custom.keymaps` — hot-reload one module during development
+
+The Omarchy theme bridge executes the machine-managed
+`~/.local/state/omarchy/current/theme/neovim.lua` file. Treat that file as
+trusted configuration. Theme load and setup failures appear as Neovim errors.
 
 Do not copy `~/.local/share/nvim/mason` between machines (its wrappers hardcode
 `$HOME` paths). Copy this repo, then run `scripts/bootstrap.sh`.

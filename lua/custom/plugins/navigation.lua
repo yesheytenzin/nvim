@@ -4,7 +4,9 @@
 return {
   {
     "ibhagwan/fzf-lua",
-    cond = function() return vim.fn.executable("fzf") == 1 end,
+    cond = function()
+      return vim.fn.executable("fzf") == 1
+    end,
     cmd = "FzfLua",
     keys = {
       { "<leader><space>", "<cmd>FzfLua files<cr>", desc = "Find Files" },
@@ -17,19 +19,25 @@ return {
       { "<leader>sg", "<cmd>FzfLua live_grep<cr>", desc = "Grep" },
       {
         "<leader>sw",
-        function() require("fzf-lua").grep_cword() end,
+        function()
+          require("fzf-lua").grep_cword()
+        end,
         desc = "Grep word under cursor",
       },
       {
         "<leader>sW",
-        function() require("fzf-lua").grep_cWORD() end,
+        function()
+          require("fzf-lua").grep_cWORD()
+        end,
         desc = "Grep WORD under cursor",
       },
       { "<leader>ss", "<cmd>FzfLua lsp_document_symbols<cr>", desc = "Document Symbols" },
       { "<leader>sS", "<cmd>FzfLua lsp_workspace_symbols<cr>", desc = "Workspace Symbols" },
       {
         "<leader>fd",
-        function() require("fzf-lua").files({ cwd = vim.fn.expand("%:p:h") }) end,
+        function()
+          require("fzf-lua").files({ cwd = vim.fn.expand("%:p:h") })
+        end,
         desc = "Find Files (Buffer Dir)",
       },
       {

@@ -22,7 +22,7 @@ return {
         sources = {
           default = { "lsp", "path", "snippets", "buffer" },
           providers = {
-            lsp = { max_items = 20 },
+            lsp = { max_items = 20, score_offset = 4 },
             snippets = { max_items = 10 },
             -- Buffer rescans open buffers per keystroke: gate on 3+ chars and
             -- cap items to keep typing latency flat in large files.

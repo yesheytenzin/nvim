@@ -16,14 +16,18 @@ return {
       local statusline = require("mini.statusline")
       statusline.setup({ use_icons = vim.g.have_nerd_font })
       ---@diagnostic disable-next-line: duplicate-set-field
-      statusline.section_location = function() return "%2l:%-2v" end
+      statusline.section_location = function()
+        return "%2l:%-2v"
+      end
     end,
   },
 
   {
     "folke/todo-comments.nvim",
     eager = true,
-    config = function() require("todo-comments").setup({ signs = false }) end,
+    config = function()
+      require("todo-comments").setup({ signs = false })
+    end,
   },
 
   {
@@ -46,16 +50,16 @@ return {
 
           map("n", "]c", function()
             if vim.wo.diff then
-              vim.cmd.normal { "]c", bang = true }
+              vim.cmd.normal({ "]c", bang = true })
             else
-              gitsigns.nav_hunk "next"
+              gitsigns.nav_hunk("next")
             end
           end, "Next git hunk")
           map("n", "[c", function()
             if vim.wo.diff then
-              vim.cmd.normal { "[c", bang = true }
+              vim.cmd.normal({ "[c", bang = true })
             else
-              gitsigns.nav_hunk "prev"
+              gitsigns.nav_hunk("prev")
             end
           end, "Previous git hunk")
 
@@ -65,9 +69,13 @@ return {
           map("n", "<leader>ghR", gitsigns.reset_buffer, "Reset buffer")
           map("n", "<leader>ghp", gitsigns.preview_hunk, "Preview hunk")
           map("n", "<leader>ghi", gitsigns.preview_hunk_inline, "Preview hunk inline")
-          map("n", "<leader>ghb", function() gitsigns.blame_line { full = true } end, "Blame line")
+          map("n", "<leader>ghb", function()
+            gitsigns.blame_line({ full = true })
+          end, "Blame line")
           map("n", "<leader>ghd", gitsigns.diffthis, "Diff against index")
-          map("n", "<leader>ghD", function() gitsigns.diffthis "~" end, "Diff against last commit")
+          map("n", "<leader>ghD", function()
+            gitsigns.diffthis("~")
+          end, "Diff against last commit")
           map("n", "<leader>ghq", gitsigns.setqflist, "Hunk quickfix list")
           map("n", "<leader>ght", gitsigns.toggle_current_line_blame, "Toggle line blame")
           map("n", "<leader>ghw", gitsigns.toggle_word_diff, "Toggle word diff")

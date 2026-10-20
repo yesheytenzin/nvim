@@ -53,7 +53,12 @@ return {
           end, vim.tbl_extend("force", opts, { desc = "Git pull --rebase" }))
 
           -- push -u origin with prompt for branch name
-          vim.keymap.set("n", "<leader>gt", ":Git push -u origin ", vim.tbl_extend("force", opts, { desc = "Git push -u origin ..." }))
+          vim.keymap.set(
+            "n",
+            "<leader>gt",
+            ":Git push -u origin ",
+            vim.tbl_extend("force", opts, { desc = "Git push -u origin ..." })
+          )
         end,
       })
 
@@ -63,8 +68,18 @@ return {
       -- these are applied buffer-local and only while 'diff' is actually set on the window.
       local function apply_diffget_maps(bufnr)
         local opts = { buffer = bufnr, silent = true }
-        vim.keymap.set("n", "gu", "<cmd>diffget //2<cr>", vim.tbl_extend("force", opts, { desc = "Diffget //2 (ours)" }))
-        vim.keymap.set("n", "gh", "<cmd>diffget //3<cr>", vim.tbl_extend("force", opts, { desc = "Diffget //3 (theirs)" }))
+        vim.keymap.set(
+          "n",
+          "gu",
+          "<cmd>diffget //2<cr>",
+          vim.tbl_extend("force", opts, { desc = "Diffget //2 (ours)" })
+        )
+        vim.keymap.set(
+          "n",
+          "gh",
+          "<cmd>diffget //3<cr>",
+          vim.tbl_extend("force", opts, { desc = "Diffget //3 (theirs)" })
+        )
       end
       local function remove_diffget_maps(bufnr)
         pcall(vim.keymap.del, "n", "gu", { buffer = bufnr })
@@ -99,7 +114,20 @@ return {
   -- mergeui.nvim: RubyMine-style 3-pane merge (CURRENT | RESULT | INCOMING)
   {
     "yesheytenzin/mergeui.nvim",
-    cmd = { "MergeUI", "MergeUIClose", "MergeUITakeLeft", "MergeUITakeRight", "MergeUITakeBoth", "MergeUITakeNone", "MergeUIToggle", "MergeUISingle", "MergeUITriple", "TriMerge", "TriMergeClose", "RubymineMerge" },
+    cmd = {
+      "MergeUI",
+      "MergeUIClose",
+      "MergeUITakeLeft",
+      "MergeUITakeRight",
+      "MergeUITakeBoth",
+      "MergeUITakeNone",
+      "MergeUIToggle",
+      "MergeUISingle",
+      "MergeUITriple",
+      "TriMerge",
+      "TriMergeClose",
+      "RubymineMerge",
+    },
     keys = {
       { "<leader>gm", "<cmd>MergeUI<cr>", desc = "Merge: 3-pane (CURRENT | RESULT | INCOMING)" },
       -- NOTE: no bare `]c`/`[c` entries: a keys entry without an action creates a
