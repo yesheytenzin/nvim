@@ -9,4 +9,13 @@ spell/
 # the exact same plugin revisions (see :help vim.pack-lockfile).
 # nvim-pack-lock.json
 
+# Local runtime state
+*.log
+*.bak
+.audit/
+.sessions/
+.ruby-lsp/
+data/
+doc/tags
+
 .DS_Store

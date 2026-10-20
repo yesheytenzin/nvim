@@ -61,3 +61,10 @@ Requires `nvim >=0.12`, `git`, `make`, `rg`, `fd`, `fzf`, `clangd`,
 
 Do not copy `~/.local/share/nvim/mason` between machines (its wrappers hardcode
 `$HOME` paths). Copy this repo, then run `scripts/bootstrap.sh`.
+
+## License
+
+Two licenses live here, because this repo carries two lineages:
+
+- `LICENSE` — Apache 2.0, the license this config was written under.
+- `LICENSE-MIT.md` — MIT, the license of the kickstart.nvim base it was built on.
