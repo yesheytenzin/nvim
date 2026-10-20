@@ -37,6 +37,8 @@ Requires `nvim >=0.12`, `git`, `make`, `rg`, `fd`, `fzf`, `clangd`,
 | `lua/custom/lsp_manifest.lua` | servers, tools, gems (pinned versions) |
 | `lua/custom/parser_manifest.lua` | Treesitter parsers wanted |
 | `lua/custom/toolchain.lua` | `:Toolchain` status + save-to-install watcher |
+| `lua/custom/health.lua` | `:checkhealth custom` — version and external tools |
+| `lua/examples/*.lua` | optional kickstart setups; not loaded, copy from them |
 | `scripts/` | headless bootstrap, verification, theme preinstall |
 
 ## Features
@@ -60,6 +62,7 @@ Requires `nvim >=0.12`, `git`, `make`, `rg`, `fd`, `fzf`, `clangd`,
 - `scripts/preinstall-omarchy-theme-plugins.sh` — prefetch every Omarchy theme colorscheme (optional; switches work without it)
 - `:Toolchain` (`<leader>ci`) — wanted vs installed parsers/servers/tools, drift report
 - `:ConfigReload custom.keymaps` — hot-reload one module during development
+- `:checkhealth custom` — Neovim version and the external tools this config needs
 
 The Omarchy theme bridge executes the machine-managed
 `~/.local/state/omarchy/current/theme/neovim.lua` file. Treat that file as

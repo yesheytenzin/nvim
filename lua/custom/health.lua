@@ -1,11 +1,9 @@
 --[[
---
--- This file is not required for your own configuration,
--- but helps people determine if their system is setup correctly.
---
+  Health check for this configuration: :checkhealth custom
+  Reports the Neovim version and the external tools the config relies on.
 --]]
 
-local check_version = function()
+local function check_version()
   local verstr = tostring(vim.version())
   if not vim.version.ge then
     vim.health.error(string.format("Neovim out of date: '%s'. Upgrade to latest stable or nightly", verstr))
@@ -19,23 +17,34 @@ local check_version = function()
   end
 end
 
-local check_external_reqs = function()
-  -- Basic utils: `git`, `make`, `unzip`
-  for _, exe in ipairs({ "git", "make", "unzip", "rg" }) do
-    local is_executable = vim.fn.executable(exe) == 1
-    if is_executable then
+-- Tools the config cannot start without.
+local required = { "git", "make", "rg", "fd", "fzf" }
+
+-- Tools only some languages need. A missing one is a hint, not a failure:
+-- clangd is for C/C++, mise runs the Ruby LSP, zls is for Zig.
+local optional = { "clangd", "mise", "zls" }
+
+local function check_external_reqs()
+  for _, exe in ipairs(required) do
+    if vim.fn.executable(exe) == 1 then
+      vim.health.ok(string.format("Found executable: '%s'", exe))
+    else
+      vim.health.error(string.format("Could not find executable: '%s'", exe))
+    end
+  end
+
+  for _, exe in ipairs(optional) do
+    if vim.fn.executable(exe) == 1 then
       vim.health.ok(string.format("Found executable: '%s'", exe))
     else
       vim.health.warn(string.format("Could not find executable: '%s'", exe))
     end
   end
-
-  return true
 end
 
 return {
   check = function()
-    vim.health.start("kickstart.nvim")
+    vim.health.start("nvim configuration")
 
     vim.health.info([[NOTE: Not every warning is a 'must-fix' in `:checkhealth`
 

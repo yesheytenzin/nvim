@@ -7,9 +7,12 @@
     lua/custom/autocmds.lua      project root, indents, big files, trim
     lua/custom/pack.lua          vim.pack + trigger-based lazy loading
     lua/custom/plugins/*.lua     plugin specs, aggregated by plugins/init.lua
+    lua/custom/lsp/*.lua         LSP attach maps, server policy, Ruby index
     lua/custom/lsp_manifest.lua  servers/tools/gems the toolchain wants
     lua/custom/parser_manifest.lua  Treesitter parsers wanted
     lua/custom/toolchain.lua     :Toolchain (wanted vs installed)
+    lua/custom/health.lua        :checkhealth custom
+    lua/examples/*.lua           optional kickstart setups, not loaded
 
   First run on a new machine:
     scripts/bootstrap.sh   prefetch parsers + Mason servers/tools
@@ -47,12 +50,13 @@ vim.api.nvim_create_user_command("ConfigReload", function(opts)
   end
 end, { nargs = 1, desc = "Reload a Lua config module" })
 
--- Optional kickstart examples are still available. They add plugins directly
--- with vim.pack and are independent of the lazy loader above:
---   require 'kickstart.plugins.debug'
---   require 'kickstart.plugins.indent_line'
---   require 'kickstart.plugins.lint'
---   require 'kickstart.plugins.autopairs'
---   require 'kickstart.plugins.neo-tree'
+-- Optional setups inherited from kickstart live under lua/examples/. They
+-- register plugins with vim.pack directly, bypassing the lazy loader above,
+-- so they are examples to copy from rather than part of this config:
+--   require 'examples.debug'
+--   require 'examples.indent_line'
+--   require 'examples.lint'
+--   require 'examples.autopairs'
+--   require 'examples.neo-tree'
 
 -- vim: ts=2 sts=2 sw=2 et
