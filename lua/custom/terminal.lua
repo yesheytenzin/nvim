@@ -1,11 +1,7 @@
--- In-buffer terminal on the built-in :terminal: no plugin, no download.
--- <leader>ot, <leader>ft and <C-/> toggle one reusable split below;
--- terminal-mode maps mirror the normal-mode window keys so the split never
--- traps you.
 local M = {}
 
-local term_buf = nil --- @type integer|nil
-local term_win = nil --- @type integer|nil
+local term_buf = nil
+local term_win = nil
 
 local function alive()
   return term_buf
@@ -13,8 +9,6 @@ local function alive()
     and vim.fn.jobwait({ vim.b[term_buf].terminal_job_id }, 0)[1] == -1
 end
 
---- Toggle the terminal split. Reuses the buffer while its job lives, so
---- shell history survives hides; a dead job starts a fresh shell.
 function M.toggle()
   if term_win and vim.api.nvim_win_is_valid(term_win) then
     vim.api.nvim_win_hide(term_win)
@@ -24,7 +18,7 @@ function M.toggle()
   if alive() then
     vim.cmd("belowright sbuffer " .. term_buf)
   else
-    vim.cmd("belowright 12split")
+    vim.cmd("belowright 12new")
     term_buf = vim.api.nvim_get_current_buf()
     local shell = os.getenv("SHELL") or vim.o.shell
     local ok, job = pcall(vim.fn.jobstart, { shell }, { term = true })
@@ -39,6 +33,22 @@ function M.toggle()
   vim.cmd("startinsert")
 end
 
+function M.run(cmd)
+  local origin = vim.api.nvim_get_current_win()
+  if not (term_win and vim.api.nvim_win_is_valid(term_win)) then
+    M.toggle()
+  end
+  if not alive() then
+    return
+  end
+  vim.fn.chansend(vim.b[term_buf].terminal_job_id, "clear; " .. cmd .. "\r")
+  vim.api.nvim_win_call(term_win, function()
+    vim.cmd("normal! G")
+  end)
+  vim.cmd("stopinsert")
+  vim.api.nvim_set_current_win(origin)
+end
+
 local group = vim.api.nvim_create_augroup("ConfigTerminal", { clear = true })
 
 vim.api.nvim_create_autocmd("TermOpen", {
@@ -47,9 +57,7 @@ vim.api.nvim_create_autocmd("TermOpen", {
     vim.opt_local.number = false
     vim.opt_local.relativenumber = false
     local opts = { buffer = e.buf, silent = true }
-    -- Esc drops to normal mode (stock <C-\><C-n> still works too).
     vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], opts)
-    -- Same window keys as normal mode (see keymaps.lua).
     vim.keymap.set("t", "<C-h>", [[<C-\><C-n><C-w>h]], opts)
     vim.keymap.set("t", "<C-j>", [[<C-\><C-n><C-w>j]], opts)
     vim.keymap.set("t", "<C-k>", [[<C-\><C-n><C-w>k]], opts)
@@ -61,8 +69,6 @@ vim.api.nvim_create_autocmd("TermOpen", {
   end,
 })
 
--- Forget the window when the user closes the split some other way (:q,
--- <C-w>c); the buffer (and shell) is still reused by toggle().
 vim.api.nvim_create_autocmd("WinClosed", {
   group = group,
   callback = function(e)
@@ -72,8 +78,6 @@ vim.api.nvim_create_autocmd("WinClosed", {
   end,
 })
 
-vim.keymap.set("n", "<leader>ot", M.toggle, { desc = "Terminal toggle (split)" })
-vim.keymap.set("n", "<leader>ft", M.toggle, { desc = "Terminal toggle (split)" })
 vim.keymap.set("n", "<C-/>", M.toggle, { desc = "Terminal toggle (split)" })
 
 return M

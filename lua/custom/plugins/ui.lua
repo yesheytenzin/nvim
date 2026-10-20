@@ -1,24 +1,70 @@
--- Kickstart UI staples kept after the migration: mini text objects/surround,
--- stock-looking statusline, todo comment highlights, and git hunk signs.
--- Hunk maps live under <leader>gh so <leader>h stays Harpoon.
 return {
   {
     "nvim-mini/mini.nvim",
     eager = true,
     config = function()
       require("mini.ai").setup({
-        -- Avoid the built-in incremental-selection mappings on Neovim >= 0.12.
         mappings = { around_next = "aa", inside_next = "ii" },
         n_lines = 500,
       })
       require("mini.surround").setup()
 
-      local statusline = require("mini.statusline")
-      statusline.setup({ use_icons = vim.g.have_nerd_font })
-      ---@diagnostic disable-next-line: duplicate-set-field
-      statusline.section_location = function()
-        return "%2l:%-2v"
+      local indentscope = require("mini.indentscope")
+      indentscope.setup({
+        symbol = "│",
+        options = { try_as_border = true },
+        draw = { delay = 50, animation = indentscope.gen_animation.none() },
+        mappings = { object_scope = "", object_scope_with_border = "", goto_top = "[i", goto_bottom = "]i" },
+      })
+      vim.api.nvim_create_autocmd({ "FileType", "TermOpen" }, {
+        group = vim.api.nvim_create_augroup("ConfigIndentscope", { clear = true }),
+        callback = function(e)
+          local ft = vim.bo[e.buf].filetype
+          if vim.bo[e.buf].buftype ~= "" or ft == "help" or ft == "netrw" or ft == "fugitive" then
+            vim.b[e.buf].miniindentscope_disable = true
+          end
+        end,
+      })
+
+      require("mini.cursorword").setup({ delay = 100 })
+      require("mini.tabline").setup({ tabpage_section = "right" })
+
+      local icons = require("mini.icons")
+      icons.setup()
+      icons.mock_nvim_web_devicons()
+
+      local function path_from_launch_dir()
+        local name = vim.api.nvim_buf_get_name(0)
+        if name == "" then
+          return "[No Name]"
+        end
+        local path = vim.fs.relpath(vim.fn.getcwd(-1, -1), name) or vim.fn.fnamemodify(name, ":~")
+        return (path:gsub("%%", "%%%%"))
       end
+
+      local statusline = require("mini.statusline")
+      statusline.setup({
+        use_icons = vim.g.have_nerd_font,
+        content = {
+          active = function()
+            local mode, mode_hl = statusline.section_mode({ trunc_width = math.huge })
+            local diagnostics = statusline.section_diagnostics({ trunc_width = 0, icon = "" })
+            return statusline.combine_groups({
+              { hl = mode_hl, strings = { mode } },
+              {
+                hl = "MiniStatuslineFilename",
+                strings = { path_from_launch_dir() .. "%{&modified ? ' [+]' : ''}" },
+              },
+              "%=",
+              { hl = "MiniStatuslineFilename", strings = { diagnostics } },
+              { hl = mode_hl, strings = { "%l:%v" } },
+            })
+          end,
+          inactive = function()
+            return "%#MiniStatuslineInactive# " .. path_from_launch_dir() .. "%="
+          end,
+        },
+      })
     end,
   },
 
@@ -37,30 +83,22 @@ return {
       local gitsigns = require("gitsigns")
       gitsigns.setup({
         signs = {
-          add = { text = "+" }, ---@diagnostic disable-line: missing-fields
-          change = { text = "~" }, ---@diagnostic disable-line: missing-fields
-          delete = { text = "_" }, ---@diagnostic disable-line: missing-fields
-          topdelete = { text = "‾" }, ---@diagnostic disable-line: missing-fields
-          changedelete = { text = "~" }, ---@diagnostic disable-line: missing-fields
+          add = { text = "+" },
+          change = { text = "~" },
+          delete = { text = "_" },
+          topdelete = { text = "‾" },
+          changedelete = { text = "~" },
         },
         on_attach = function(bufnr)
           local map = function(mode, lhs, rhs, desc)
             vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, desc = desc })
           end
 
-          map("n", "]c", function()
-            if vim.wo.diff then
-              vim.cmd.normal({ "]c", bang = true })
-            else
-              gitsigns.nav_hunk("next")
-            end
+          map("n", "]h", function()
+            gitsigns.nav_hunk("next")
           end, "Next git hunk")
-          map("n", "[c", function()
-            if vim.wo.diff then
-              vim.cmd.normal({ "[c", bang = true })
-            else
-              gitsigns.nav_hunk("prev")
-            end
+          map("n", "[h", function()
+            gitsigns.nav_hunk("prev")
           end, "Previous git hunk")
 
           map("n", "<leader>ghs", gitsigns.stage_hunk, "Stage hunk")

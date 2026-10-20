@@ -1,11 +1,4 @@
--- Headless prefetch of everything this config needs at runtime, so normal
--- boots never download: Treesitter parsers + Mason LSP servers/tools + zls.
--- Idempotent: anything already installed is skipped.
--- Usage: scripts/bootstrap.sh
---   (or directly: nvim --headless -c "luafile scripts/bootstrap.lua")
--- Exits non-zero (cquit 1) if anything fails to install.
-
-local failures = {} --- @type string[]
+local failures = {}
 local function log(msg)
   io.write(msg .. "\n")
 end
@@ -17,12 +10,9 @@ local function ok(msg)
   log("ok   " .. msg)
 end
 
--- init.lua already ran (pack specs registered, treesitter eager-loaded), but
--- pack.load is idempotent — ensure the pieces we drive are loaded.
 local pack = require("custom.pack")
 pack.load("nvim-treesitter")
 
--- ── 1. Treesitter parsers ──────────────────────────────────────────────
 do
   local wanted = require("custom.parser_manifest")
   local missing = require("custom.manifest_util").ts_missing(wanted)
@@ -45,16 +35,11 @@ do
   end
 end
 
--- ── 2. Mason LSP servers + tools ───────────────────────────────────────
 do
   pack.load("mason.nvim")
   pack.load("mason-lspconfig.nvim")
   pack.load("mason-tool-installer.nvim")
 
-  -- Tools owned by mason-tool-installer (run_on_start = false, so normal
-  -- boots never fetch these — only this script and :MasonToolsInstall do).
-  -- Sync variant blocks, which is what headless mode needs. Tool list owned
-  -- by lua/custom/lsp_manifest.lua.
   local tools = require("custom.lsp_manifest").tools
   local tool_names = vim.tbl_map(function(t)
     return t.name
@@ -66,20 +51,11 @@ do
     ok("mason tools (" .. table.concat(tool_names, ", ") .. ")")
   end
 
-  -- LSP servers owned by mason-lspconfig. Its automatic ensure_installed is
-  -- skipped in headless mode, so install the Mason packages explicitly here.
-  -- (On normal boots the same ensure_installed covers fresh machines on
-  -- first file-open instead.) Server list owned by lua/custom/lsp_manifest.lua.
-  -- Drift-aware: absent packages AND version mismatches reinstall the pin,
-  -- so repeat runs touch no network only when everything matches.
   local servers = require("custom.lsp_manifest").servers
   local mr_ok, mr = pcall(require, "mason-registry")
   if not mr_ok then
     fail("mason-registry unavailable")
   else
-    -- mr.refresh() with a callback is async: park completion in a local and
-    -- block on it. The callback runs synchronously when the registry is
-    -- already cached, so this returns immediately on warm machines.
     local state = { done = false }
     mr.refresh(function()
       local util = require("custom.manifest_util")
@@ -118,11 +94,6 @@ do
   end
 end
 
--- ── 3. Ruby gems owned by mise (not Mason) ─────────────────────────────
--- ruby_lsp runs under the Ruby the project pins (.ruby-version), so the gem
--- and the native extensions it ships (prism, rbs) must live in that Ruby.
--- One copy per Ruby: a compiled .so is ABI-specific, and the wrong one is
--- rejected ("extensions are not built") instead of used.
 do
   local gems = require("custom.lsp_manifest").gems
   local util = require("custom.manifest_util")
@@ -153,7 +124,6 @@ do
   end
 end
 
--- ── 4. zls (not a Mason package) ───────────────────────────────────────
 do
   local pin = require("custom.lsp_manifest").zls.version
   local manual = vim.fs.joinpath(vim.fn.stdpath("data"), "zls", "bin", "zls")
@@ -176,7 +146,6 @@ do
   end
 end
 
--- ── Summary ────────────────────────────────────────────────────────────
 if #failures > 0 then
   log(#failures .. " bootstrap step(s) failed")
   vim.cmd("cquit 1")

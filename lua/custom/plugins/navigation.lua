@@ -1,6 +1,3 @@
--- Search & outline: fzf-lua pickers plus a code outline.
--- fzf-lua drives the native fzf binary (already installed), so there is no
--- telescope + fzf-native build step and no plenary dependency for pickers.
 return {
   {
     "ibhagwan/fzf-lua",
@@ -9,11 +6,9 @@ return {
     end,
     cmd = "FzfLua",
     keys = {
-      { "<leader><space>", "<cmd>FzfLua files<cr>", desc = "Find Files" },
       { "<leader>ff", "<cmd>FzfLua files<cr>", desc = "Find Files" },
       { "<leader>fg", "<cmd>FzfLua git_files<cr>", desc = "Find Git Files" },
       { "<leader>fb", "<cmd>FzfLua buffers<cr>", desc = "Buffers" },
-      { "<leader>,", "<cmd>FzfLua buffers<cr>", desc = "Buffers" },
       { "<leader>sh", "<cmd>FzfLua helptags<cr>", desc = "Help Pages" },
       { "<leader>fr", "<cmd>FzfLua oldfiles<cr>", desc = "Recent Files" },
       { "<leader>sg", "<cmd>FzfLua live_grep<cr>", desc = "Grep" },
@@ -61,16 +56,11 @@ return {
     },
     config = function()
       require("fzf-lua").setup({
-        -- fzf-lua's default backdrop paints a full-screen window with the
-        -- FzfLuaBackdrop highlight (bg = Black) at 60% blend. On the light
-        -- Rose Pine Dawn theme that reads as a black smear around the float;
-        -- the border alone is enough separation.
         winopts = { backdrop = false },
       })
     end,
   },
 
-  -- Outline / breadcrumbs (not Rails-specific).
   {
     "stevearc/aerial.nvim",
     keys = {

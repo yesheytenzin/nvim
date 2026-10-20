@@ -1,27 +1,28 @@
--- Version control in one module: fugitive (status, push/pull, diffget) plus
--- mergeui (RubyMine-style 3-pane merge).
 return {
-  -- vim-fugitive: ThePrimeagen style
-  -- Source: https://github.com/ThePrimeagen/init.lua/blob/master/lua/theprimeagen/lazy/fugitive.lua
-  -- Mirrors Primeagen exactly: <leader>gs for status, buffer-local push/pull, gu/gh for diffget
   {
     "tpope/vim-fugitive",
     cmd = { "Git", "G", "Gdiffsplit", "Gvdiffsplit", "Gread", "Gwrite", "Ggrep", "GMove", "GDelete", "GBrowse" },
     keys = {
       { "<leader>gs", "<cmd>Git<cr>", desc = "Git Status (Fugitive)" },
-      -- NOTE: no `gu`/`gh` entries here: a keys entry without an action creates a
-      -- GLOBAL placeholder that swallows Vim's builtin `gu` lowercase operator
-      -- (guiw, guu, ...) everywhere. diffget maps are buffer-local, applied only
-      -- while 'diff' is set (see config() below).
+      {
+        "<leader>gp",
+        function()
+          vim.cmd.Git("push")
+        end,
+        desc = "Git push",
+      },
+      {
+        "<leader>gP",
+        function()
+          vim.cmd.Git({ "pull", "--rebase" })
+        end,
+        desc = "Git pull --rebase",
+      },
+      { "<leader>gu", ":Git push -u origin ", desc = "Git push -u origin (set upstream)" },
     },
     config = function()
-      -- <leader>gs — Primeagen's main toggle (vim.cmd.Git opens :Git status).
-      -- The lazy `keys` entry above only *loads* fugitive; this map is the real
-      -- action and runs once the plugin is on disk, so it is not duplicated there.
-
       local group = vim.api.nvim_create_augroup("ThePrimeagen_Fugitive", {})
 
-      -- show fugitive status at bottom as horizontal split (full width)
       vim.api.nvim_create_autocmd("FileType", {
         group = group,
         pattern = "fugitive",
@@ -31,59 +32,24 @@ return {
         end,
       })
 
-      vim.api.nvim_create_autocmd("BufWinEnter", {
-        group = group,
-        pattern = "*",
-        callback = function()
-          if vim.bo.ft ~= "fugitive" then
-            return
-          end
-          local bufnr = vim.api.nvim_get_current_buf()
-          local opts = { buffer = bufnr, remap = false, silent = true }
-          -- All under <leader>g (git): bare <leader>p would shadow the global
-          -- <leader>p* prefix (pf/ps/pg/...) inside fugitive buffers, and bare
-          -- <leader>t collides with global <leader>tt (trouble).
-          vim.keymap.set("n", "<leader>gp", function()
-            vim.cmd.Git("push")
-          end, vim.tbl_extend("force", opts, { desc = "Git push" }))
-
-          -- rebase always (Primeagen rule)
-          vim.keymap.set("n", "<leader>gP", function()
-            vim.cmd.Git({ "pull", "--rebase" })
-          end, vim.tbl_extend("force", opts, { desc = "Git pull --rebase" }))
-
-          -- push -u origin with prompt for branch name
-          vim.keymap.set(
-            "n",
-            "<leader>gt",
-            ":Git push -u origin ",
-            vim.tbl_extend("force", opts, { desc = "Git push -u origin ..." })
-          )
-        end,
-      })
-
-      -- Merge-conflict resolution (diffget //2, //3) — scoped to diff windows only.
-      -- NOTE: `gu` is Vim's builtin lowercase operator (guiw, guw, ...). Binding it
-      -- globally would swallow that operator everywhere, not just during merges, so
-      -- these are applied buffer-local and only while 'diff' is actually set on the window.
       local function apply_diffget_maps(bufnr)
         local opts = { buffer = bufnr, silent = true }
         vim.keymap.set(
           "n",
-          "gu",
+          "gh",
           "<cmd>diffget //2<cr>",
-          vim.tbl_extend("force", opts, { desc = "Diffget //2 (ours)" })
+          vim.tbl_extend("force", opts, { desc = "Take left (ours, //2)" })
         )
         vim.keymap.set(
           "n",
-          "gh",
+          "gl",
           "<cmd>diffget //3<cr>",
-          vim.tbl_extend("force", opts, { desc = "Diffget //3 (theirs)" })
+          vim.tbl_extend("force", opts, { desc = "Take right (theirs, //3)" })
         )
       end
       local function remove_diffget_maps(bufnr)
-        pcall(vim.keymap.del, "n", "gu", { buffer = bufnr })
         pcall(vim.keymap.del, "n", "gh", { buffer = bufnr })
+        pcall(vim.keymap.del, "n", "gl", { buffer = bufnr })
       end
 
       vim.api.nvim_create_autocmd("OptionSet", {
@@ -99,7 +65,6 @@ return {
         end,
       })
 
-      -- Catch windows that already have 'diff' set when fugitive opens them (e.g. Gdiffsplit).
       vim.api.nvim_create_autocmd({ "BufWinEnter", "WinEnter" }, {
         group = group,
         pattern = "*",
@@ -111,7 +76,6 @@ return {
       })
     end,
   },
-  -- mergeui.nvim: RubyMine-style 3-pane merge (CURRENT | RESULT | INCOMING)
   {
     "yesheytenzin/mergeui.nvim",
     cmd = {
@@ -130,16 +94,13 @@ return {
     },
     keys = {
       { "<leader>gm", "<cmd>MergeUI<cr>", desc = "Merge: 3-pane (CURRENT | RESULT | INCOMING)" },
-      -- NOTE: no bare `]c`/`[c` entries: a keys entry without an action creates a
-      -- GLOBAL placeholder that swallows the builtin diff motions ]c/[c
-      -- everywhere. Conflict navigation stays buffer-local via the config below.
     },
     config = function()
       require("mergeui").setup({
-        view = "triple", -- "triple" (CURRENT|RESULT|INCOMING) or "single" (RESULT only) -- toggle with <leader>mt or :MergeUIToggle,
+        view = "triple",
         keymaps = {
-          take_left = "<leader>mh", -- >> CURRENT
-          take_right = "<leader>ml", -- << INCOMING
+          take_left = "<leader>mh",
+          take_right = "<leader>ml",
           take_both = "<leader>mb",
           take_none = "<leader>mx",
           next_conflict = "]c",

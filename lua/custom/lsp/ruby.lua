@@ -1,21 +1,52 @@
 local M = {}
 
 function M.command()
-  -- Run under the project's pinned Ruby. Fall back when that Ruby does not
-  -- have ruby-lsp installed instead of forcing the global Ruby into the app.
   if vim.fn.executable("mise") == 1 and vim.fn.executable("sh") == 1 then
     return { "sh", "-c", "mise exec -- ruby-lsp || exec ruby-lsp" }
   end
   return { "ruby-lsp" }
 end
 
+function M.sequence_completion(client)
+  local request, cancel = client.request, client.cancel_request
+  local followups = {}
+
+  client.request = function(self, method, params, handler, bufnr)
+    if method ~= "textDocument/completion" then
+      return request(self, method, params, handler, bufnr)
+    end
+    local barrier = { textDocument = params.textDocument, position = { line = 0, character = 0 } }
+    local barrier_id
+    local ok, id = request(self, "textDocument/documentHighlight", barrier, function()
+      if followups[barrier_id] == false then
+        followups[barrier_id] = nil
+        return
+      end
+      local _, real_id = request(self, method, params, handler, bufnr)
+      followups[barrier_id] = real_id
+    end, bufnr)
+    barrier_id = id
+    return ok, id
+  end
+
+  client.cancel_request = function(self, id)
+    local real_id = followups[id]
+    if real_id then
+      followups[id] = nil
+      return cancel(self, real_id)
+    end
+    if real_id == nil then
+      followups[id] = false
+    end
+    return cancel(self, id)
+  end
+end
+
 function M.setup_refresh()
   local group = vim.api.nvim_create_augroup("ConfigRubyLspIndex", { clear = true })
   local timer = vim.uv.new_timer()
-  local refreshed = {} --- @type table<integer, integer>
+  local refreshed = {}
 
-  -- ruby-lsp refreshes its completion index while handling documentSymbol.
-  -- Reopening first makes it index the current buffer instead of the disk copy.
   local function refresh(bufnr)
     if not vim.api.nvim_buf_is_valid(bufnr) then
       return

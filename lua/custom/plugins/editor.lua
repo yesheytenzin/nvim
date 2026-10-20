@@ -1,10 +1,84 @@
--- Editor enhancements, Primeagen-curated (ThePrimeagen/init.lua):
--- undo tree, diagnostics list, secret cloaking, textobjects, zen mode.
--- Named by role, not author. All trigger-loaded — ~0 startup cost.
-
 return {
-  -- 1) Undotree — <leader>ut — Primeagen's most iconic plugin (ut, not bare u:
-  -- bare <leader>u would collide with the <leader>ud diagnostics toggle)
+  {
+    "MagicDuck/grug-far.nvim",
+    cmd = "GrugFar",
+    keys = {
+      {
+        "<leader>sR",
+        function()
+          require("grug-far").open({ prefills = { search = vim.fn.expand("<cword>") } })
+        end,
+        desc = "Search & replace in project",
+      },
+    },
+    config = function()
+      require("grug-far").setup({})
+    end,
+  },
+
+  {
+    "nvim-treesitter/nvim-treesitter-context",
+    event = { "BufReadPost", "BufNewFile" },
+    keys = {
+      {
+        "<leader>uc",
+        function()
+          require("treesitter-context").toggle()
+        end,
+        desc = "Toggle sticky context header",
+      },
+    },
+    config = function()
+      require("treesitter-context").setup({ max_lines = 3, multiline_threshold = 1 })
+    end,
+  },
+
+  {
+    "windwp/nvim-autopairs",
+    event = { "InsertEnter" },
+    config = function()
+      local autopairs = require("nvim-autopairs")
+      local endwise = require("nvim-autopairs.ts-rule").endwise
+      autopairs.setup({ check_ts = true })
+
+      local function block_already_closed()
+        local row = vim.api.nvim_win_get_cursor(0)[1]
+        local indent = vim.fn.indent(row)
+        for next_row = row + 1, vim.api.nvim_buf_line_count(0) do
+          local text = vim.fn.getline(next_row)
+          if text:match("%S") then
+            local next_indent = vim.fn.indent(next_row)
+            return next_indent > indent or (next_indent == indent and text:match("^%s*end%f[%W]") ~= nil)
+          end
+        end
+        return false
+      end
+
+      local rules = vim.list_extend({}, require("nvim-autopairs.rules.endwise-ruby"))
+      vim.list_extend(rules, {
+        endwise("then$", "end", "lua", nil),
+        endwise("function.*%(.*%)$", "end", "lua", nil),
+        endwise("%sdo$", "end", "lua", nil),
+      })
+      for _, rule in ipairs(rules) do
+        rule:with_cr(function()
+          if block_already_closed() then
+            return false
+          end
+        end)
+      end
+      autopairs.add_rules(rules)
+    end,
+  },
+
+  {
+    "windwp/nvim-ts-autotag",
+    ft = { "html", "eruby", "xml", "javascriptreact", "typescriptreact", "vue", "svelte" },
+    config = function()
+      require("nvim-ts-autotag").setup()
+    end,
+  },
+
   {
     "mbbill/undotree",
     cmd = "UndotreeToggle",
@@ -13,28 +87,25 @@ return {
     },
   },
 
-  -- 2) Trouble diagnostics, symbols, references, and list views.
   {
     "folke/trouble.nvim",
     cmd = "Trouble",
     keys = {
       { "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>", desc = "Diagnostics" },
-      { "<leader>xX", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", desc = "Buffer Diagnostics" },
-      { "<leader>cs", "<cmd>Trouble symbols toggle focus=false<cr>", desc = "Symbols" },
+      { "<leader>xb", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", desc = "Buffer Diagnostics" },
       {
-        "<leader>cS",
+        "<leader>cl",
         "<cmd>Trouble lsp toggle focus=false win.position=right<cr>",
         desc = "LSP References/Definitions",
       },
-      { "<leader>xL", "<cmd>Trouble loclist toggle<cr>", desc = "Location List" },
-      { "<leader>xQ", "<cmd>Trouble qflist toggle<cr>", desc = "Quickfix List" },
+      { "<leader>xl", "<cmd>Trouble loclist toggle<cr>", desc = "Location List" },
+      { "<leader>xq", "<cmd>Trouble qflist toggle<cr>", desc = "Quickfix List" },
     },
     config = function()
       require("trouble").setup({})
     end,
   },
 
-  -- 3) Cloak — hide secrets in .env* (Primeagen cloak.lua)
   {
     "laytan/cloak.nvim",
     event = "BufReadPre",
@@ -53,14 +124,11 @@ return {
     end,
   },
 
-  -- 4) Treesitter textobjects — af/if for functions (Primeagen treesitter.lua)
   {
     "nvim-treesitter/nvim-treesitter-textobjects",
     event = { "BufReadPost", "BufNewFile" },
     deps = { "nvim-treesitter" },
     config = function()
-      -- nvim-treesitter main dropped the `select.keymaps` option; define the
-      -- mappings explicitly against the select module.
       require("nvim-treesitter-textobjects").setup({
         select = { lookahead = true },
       })
@@ -75,7 +143,6 @@ return {
     end,
   },
 
-  -- 5) Zen-mode — <leader>zz / <leader>zZ (Primeagen zenmode.lua)
   {
     "folke/zen-mode.nvim",
     cmd = "ZenMode",

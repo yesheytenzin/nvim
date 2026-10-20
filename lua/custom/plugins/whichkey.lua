@@ -1,6 +1,3 @@
--- which-key: popup showing pending keystrokes (<leader>, g, z, ", ', `, c, v in visual...)
--- All keymaps already carry `desc`, so this just works. Groups below give
--- the <leader> prefixes friendly names in the popup.
 return {
   {
     "folke/which-key.nvim",
@@ -19,18 +16,20 @@ return {
         preset = "modern",
         delay = 200,
         spec = {
-          { "<leader>f", group = "File" },
-          { "<leader>c", group = "Code" },
-          { "<leader>q", group = "Session/Quit" },
-          { "<leader>g", group = "Git" },
-          { "<leader>gh", group = "Git Hunk" },
-          { "<leader>r", group = "Rails/Refactor" },
-          { "<leader>m", group = "Merge" },
-          { "<leader>u", group = "UI/Toggle" },
-          { "<leader>s", group = "Search" },
-          { "<leader>x", group = "Diagnostics/Quickfix" },
-          { "<leader>w", group = "Windows" },
-          { "<leader>z", group = "Zen" },
+          { "<leader>f", group = "find / file" },
+          { "<leader>s", group = "search" },
+          { "<leader>c", group = "code" },
+          { "<leader>g", group = "git" },
+          { "<leader>gh", group = "hunk" },
+          { "<leader>r", group = "rails" },
+          { "<leader>t", group = "test / run" },
+          { "<leader>x", group = "lists (diagnostics, quickfix)" },
+          { "<leader>u", group = "toggle" },
+          { "<leader>q", group = "quit / session" },
+          { "<leader>w", group = "window" },
+          { "<leader>b", group = "buffer" },
+          { "<leader><tab>", group = "tabs" },
+          { "<leader>z", group = "zen" },
         },
       })
     end,

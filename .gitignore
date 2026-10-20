@@ -5,11 +5,6 @@ nvim
 
 spell/
 
-# This is a personal fork: the lockfile is tracked so every machine resolves
-# the exact same plugin revisions (see :help vim.pack-lockfile).
-# nvim-pack-lock.json
-
-# Local runtime state
 *.log
 *.bak
 .audit/

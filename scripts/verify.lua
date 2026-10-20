@@ -1,5 +1,3 @@
--- Headless verification of the vim.pack config. Run via scripts/verify.sh.
--- Exits non-zero (cquit 1) if any check fails.
 local pack = require("custom.pack")
 
 local results = {}
@@ -7,24 +5,20 @@ local function check(label, cond)
   results[#results + 1] = { label = label, ok = cond and true or false }
 end
 
--- Lazy at startup: these must not be loaded before their trigger fires.
 for _, mod in ipairs({ "blink.cmp", "fzf-lua", "trouble", "harpoon" }) do
   check(mod .. " not loaded at startup", package.loaded[mod] == nil)
 end
 
--- Event trigger.
 vim.cmd("doautocmd InsertEnter")
 vim.wait(80)
 check("InsertEnter -> blink.cmp", package.loaded["blink.cmp"] ~= nil)
 check("blink LSP capabilities", type(require("blink.cmp").get_lsp_capabilities()) == "table")
 
--- Filetype trigger (assigning 'filetype' fires FileType).
 vim.cmd("enew")
 vim.bo.filetype = "lua"
 vim.wait(80)
 check("ft lua -> lspconfig chain (blink loaded)", package.loaded["blink.cmp"] ~= nil)
 
--- Smoke-load every declared spec; capture notifications for errors.
 local notes = {}
 local orig = vim.notify
 vim.notify = function(msg, level)
@@ -36,32 +30,21 @@ end
 vim.notify = orig
 check("all config() load cleanly", #notes == 0)
 
--- Treesitter parsers AND queries must resolve. Queries are symlinked into
--- stdpath('data')/site/queries; broken links silently kill all highlighting
--- (treesitter disables vim syntax, so there is no fallback).
 check("treesitter ruby query available", #vim.treesitter.query.get_files("ruby", "highlights") > 0)
 check("treesitter cpp query available", #vim.treesitter.query.get_files("cpp", "highlights") > 0)
 check("treesitter lua query available", #vim.treesitter.query.get_files("lua", "highlights") > 0)
 check("treesitter zig query available", #vim.treesitter.query.get_files("zig", "highlights") > 0)
 check("treesitter bash query available", #vim.treesitter.query.get_files("bash", "highlights") > 0)
 check("treesitter python query available", #vim.treesitter.query.get_files("python", "highlights") > 0)
--- Rust set: rust + toml (Cargo.toml/Cargo.lock) + comment (the parser rust
--- injects its comment nodes into).
 check("treesitter rust query available", #vim.treesitter.query.get_files("rust", "highlights") > 0)
 check("treesitter toml query available", #vim.treesitter.query.get_files("toml", "highlights") > 0)
 check("treesitter comment query available", #vim.treesitter.query.get_files("comment", "highlights") > 0)
 
--- Offline cache: every wanted parser must have a compiled .so under
--- stdpath('data')/site/parser, otherwise the next boot downloads + compiles
--- it (see scripts/bootstrap.lua for the prefetch).
 for _, lang in ipairs(require("custom.parser_manifest")) do
   local so = vim.fs.joinpath(vim.fn.stdpath("data"), "site", "parser", lang .. ".so")
   check("treesitter parser cached: " .. lang, vim.fn.filereadable(so) == 1)
 end
 
--- LSP servers + tools must resolve without downloading. Mason's bin/ is
--- prepended to PATH by mason.nvim's setup (run above via pack.load); zls is
--- manual-or-system. Wanted sets + pins owned by lua/custom/lsp_manifest.lua.
 local manifest = require("custom.lsp_manifest")
 local mr_ok, mr = pcall(require, "mason-registry")
 for _, s in ipairs(manifest.servers) do
@@ -82,10 +65,6 @@ for _, tool in ipairs(manifest.tools) do
     )
   end
 end
--- Ruby gems owned by mise: one copy per Ruby, at the pinned version. A gem
--- that ships native extensions (prism, rbs) built for another Ruby is
--- rejected at require time, so a missing copy in the active Ruby is what
--- breaks the LSP.
 for _, g in ipairs(manifest.gems or {}) do
   check("gem binary: " .. g.bin, vim.fn.executable(g.bin) == 1)
   local drift = require("custom.manifest_util").gem_drift(g.name, g.version)
@@ -104,8 +83,6 @@ do
   end
 end
 
--- Lockfile drift: every pinned plugin's installed rev must match
--- nvim-pack-lock.json (extra dirs, e.g. omarchy theme plugins, are ignored).
 do
   local lock_path = vim.fs.joinpath(vim.fn.stdpath("config"), "nvim-pack-lock.json")
   local lock_ok, lock = pcall(vim.json.decode, table.concat(vim.fn.readfile(lock_path), "\n"))
@@ -122,14 +99,11 @@ do
   end
 end
 
--- Kickstart UI modules kept by the migration: eager at startup by design.
 check("mini.nvim loaded at startup", package.loaded["mini.ai"] ~= nil)
 check("todo-comments loaded at startup", package.loaded["todo-comments"] ~= nil)
 check("colorscheme active", vim.g.colors_name ~= nil)
 
--- Keymaps installed by the plugin specs (lazy `keys` entries fire on use).
 for _, m in ipairs({
-  "<leader><space>",
   "<leader>ff",
   "<leader>fg",
   "<leader>fb",
@@ -138,10 +112,29 @@ for _, m in ipairs({
   "<leader>sw",
   "<leader>ss",
   "<leader>h",
-  "<leader>H",
+  "<leader>a",
+  "<leader>tr",
+  "<leader>tt",
+  "<leader>tl",
+  "<leader>sR",
+  "<leader>uh",
+  "<leader>uc",
+  "<F5>",
+  "<F9>",
+  "<leader>bo",
+  "Q",
+  "H",
+  "L",
+  "<leader>wo",
+  "<leader><tab><tab>",
+  "]t",
   "<leader>1",
   "<leader>gs",
   "<leader>gm",
+  "<leader>gp",
+  "<leader>gu",
+  "<leader>xb",
+  "<leader>cl",
   "<leader>ut",
   "<leader>xx",
   "<leader>co",
@@ -150,8 +143,6 @@ for _, m in ipairs({
   "<leader>cr",
   "<leader>cf",
   "<leader>ci",
-  "<leader>ft",
-  "<leader>ot",
   "<leader>e",
   "<leader>cd",
   "<leader>ud",
@@ -162,15 +153,11 @@ for _, m in ipairs({
   check("keymap " .. m, vim.fn.maparg(m, "n") ~= "")
 end
 
--- Treesitter textobjects are defined explicitly because nvim-treesitter main
--- no longer accepts the old `select.keymaps` table.
 check("textobject af map", vim.fn.maparg("af", "x") ~= "")
 check("textobject if map", vim.fn.maparg("if", "x") ~= "")
 
--- Conform must resolve the Lua formatter without downloading at format time.
 check("conform stylua for lua", vim.tbl_contains(require("conform").list_formatters_for_buffer(0), "stylua"))
 
--- The fzf-lua functions referenced by our keymaps must all exist.
 local fzf_ok, fzf_err = pcall(function()
   local f = require("fzf-lua")
   for _, m in ipairs({
@@ -189,13 +176,21 @@ local fzf_ok, fzf_err = pcall(function()
 end)
 check("fzf-lua keymap API present" .. (fzf_ok and "" or (": " .. tostring(fzf_err))), fzf_ok)
 
--- In-buffer terminal (lua/custom/terminal.lua, built-in :terminal, no plugin).
 local term_ok, term = pcall(require, "custom.terminal")
 check("terminal module loads", term_ok and type(term.toggle) == "function")
-check("terminal toggle keymap <leader>ot", vim.fn.maparg("<leader>ot", "n") ~= "")
-check("terminal toggle keymap <leader>ft", vim.fn.maparg("<leader>ft", "n") ~= "")
+check("terminal toggle keymap <C-/>", vim.fn.maparg("<C-/>", "n") ~= "")
 
--- Toolchain manifests + status (lua/custom/toolchain.lua, lua/custom/lsp_manifest.lua).
+local keys_by_desc = {}
+for _, m in ipairs(vim.api.nvim_get_keymap("n")) do
+  if m.desc and m.lhs:sub(1, 1) == vim.g.mapleader then
+    keys_by_desc[m.desc] = keys_by_desc[m.desc] or {}
+    table.insert(keys_by_desc[m.desc], m.lhs)
+  end
+end
+for desc, lhs in pairs(keys_by_desc) do
+  check(("one key for %q (%s)"):format(desc, table.concat(lhs, " ")), #lhs == 1)
+end
+
 local tc_ok, tc = pcall(require, "custom.toolchain")
 check("toolchain module loads", tc_ok and type(tc.show) == "function")
 check("toolchain command :Toolchain", vim.fn.exists(":Toolchain") == 2)

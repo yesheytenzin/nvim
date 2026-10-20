@@ -1,4 +1,3 @@
--- Harpoon 2 with LazyVim-style bindings.
 return {
   {
     "ThePrimeagen/harpoon",
@@ -6,7 +5,7 @@ return {
     deps = { "plenary.nvim" },
     keys = {
       {
-        "<leader>H",
+        "<leader>a",
         function()
           require("harpoon"):list():add()
         end,

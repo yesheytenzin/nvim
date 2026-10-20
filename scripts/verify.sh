@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Verify the vim.pack config: plugin/lock counts, startup time, triggers, smoke.
-# Usage: scripts/verify.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

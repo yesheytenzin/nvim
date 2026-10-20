@@ -1,4 +1,3 @@
-# Check Lua Formatting
 name: Check Lua Formatting
 on:
   push:

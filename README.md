@@ -31,7 +31,7 @@ Requires `nvim >=0.12`, `git`, `make`, `rg`, `fd`, `fzf`, `clangd`,
 | `lua/custom/pack.lua` | `vim.pack` + lazy triggers and per-plugin `config()` |
 | `lua/custom/plugins/*.lua` | plugin specs, aggregated by `plugins/init.lua` |
 | `lua/custom/lsp/*.lua` | LSP attach maps, server policy, and Ruby index refresh |
-| `lua/custom/terminal.lua` | reusable in-buffer terminal (<leader>ft / <leader>ot / <C-/>) |
+| `lua/custom/terminal.lua` | reusable in-buffer terminal (<C-/>) |
 | `lua/custom/remote_clipboard.lua` | OSC 52 + `wl-copy` for tmux/SSH |
 | `lua/custom/omarchy_theme.lua` | Omarchy theme bridge + hot reload; rose-pine fallback |
 | `lua/custom/lsp_manifest.lua` | servers, tools, gems (pinned versions) |
@@ -44,13 +44,19 @@ Requires `nvim >=0.12`, `git`, `make`, `rg`, `fd`, `fzf`, `clangd`,
 ## Features
 
 - **Search:** fzf-lua pickers (`<leader>ff/fg/fb/fr/fd`, `<leader>sg/sw/sW/ss/sS`, `<leader>sh`)
-- **Navigation:** Harpoon 2 (`<leader>h`, `<leader>H`, `<leader>1-9`), aerial outline (`<leader>co`), persistence sessions (`<leader>qs/qS/ql/qd`)
-- **Git:** fugitive (`<leader>gs/gp/gP/gt`), mergeui 3-pane merge (`<leader>gm`), gitsigns hunks (`<leader>gh*`)
-- **Editor:** trouble (`<leader>xx/xX/cs/cS/xL/xQ`), undotree (`<leader>ut`), cloak for `.env*`, zen mode (`<leader>zz/zZ`), inc-rename (`<leader>cr`), Treesitter textobjects (`af/if`), mini.ai/surround
-- **Rails:** vim-rails navigation (`<leader>ra/rA/rm/rc/rM/rv`) and ruby_lsp under the project's mise Ruby
+- **Navigation:** Harpoon 2 (`<leader>a` add, `<leader>h` menu, `<leader>1-9` jump), aerial outline (`<leader>co`), persistence sessions (`<leader>qs/qS/ql/qd`)
+- **Git:** fugitive (`<leader>gs/gp/gP/gu`), mergeui 3-pane merge (`<leader>gm`, take left/right with `gh`/`gl`), gitsigns hunks (`]h`/`[h`, `<leader>gh*`)
+- **Editor:** trouble (`<leader>xx/xb/xl/xq/cl`), undotree (`<leader>ut`), cloak for `.env*`, zen mode (`<leader>zz/zZ`), inc-rename (`<leader>cr`), Treesitter textobjects (`af/if`), mini.ai/surround
+- **Rails:** vim-rails navigation (`<leader>ra/rr/rm/rc/rv/rd`) and ruby_lsp under the project's mise Ruby
 - **LSP:** `lua_ls`, `clangd`, `ruby_lsp`, `rust_analyzer`, `pyright`, `bashls`, `zls`; diagnostics virtual text off by default (`<leader>ud` toggles)
 - **Formatting:** conform with rubocop, yamlfmt, jq, clang-format, stylua, shfmt; manual `<leader>cf`
-- **Completion:** blink.cmp (`enter` preset, LSP preferred over path, snippets + buffer fallbacks), friendly-snippets via native `vim.snippet`
+- **Completion:** blink.cmp (`Tab` accepts the top item, `<C-n>`/`<C-p>` pick one and `Enter` accepts it, otherwise `Enter` is a plain new line), LSP preferred over path, snippets + buffer fallbacks, friendly-snippets via native `vim.snippet`; methods defined in the current Ruby file complete instantly
+- **Run & test:** `<leader>tr` runs the current file (ruby/python/lua/sh/node) and `<leader>tt` runs its `_test.rb`/`_spec.rb` (minitest, rspec, or `bin/rails test`) in the `<C-/>` terminal; `<leader>tl` reruns the last one
+- **Debugger:** nvim-dap + dap-ui + rdbg for Ruby — `F9`/`Shift-F9` breakpoint/conditional, `F5` start/continue, `F10`/`F11`/`F12` over/into/out, `Shift-F5` stop
+- **Reading code:** Treesitter folding (`za`, everything starts open), sticky `class`/`def` header (`<leader>uc`), indent guide with `[i`/`]i` jumps, highlight of the word under the cursor, inlay hints (`<leader>uh`)
+- **Project replace:** grug-far (`<leader>sR`, prefilled with the word under the cursor)
+- **Windows, buffers, tabs:** `<C-h/j/k/l>` move between splits, `<leader>ws`/`wv` split below/right, `<leader>wd` close, `<leader>wo` close others; `Shift-l`/`Shift-h` next/previous buffer in the tab bar, `Q` close buffer (layout kept), `<leader>bo` close other buffers; a tab bar at the top lists open buffers (tab pages numbered on the right); `<leader><tab><tab>` open buffer in a new tab, `<leader><tab>n` new empty tab, `]t`/`[t` next/previous tab, `<leader><tab>d` close tab, `<leader><tab>o` close other tabs
+- **Auto-close:** nvim-autopairs closes brackets/quotes and adds `end` after `def`/`class`/`module`/`do`/`if`/`case`/… (Ruby) and `function`/`then`/`do` (Lua), skipping blocks that are already closed; nvim-ts-autotag closes and renames HTML/ERB tags; yanked text flashes briefly
 - **Theme:** Omarchy-managed colorscheme with live reload; rose-pine-moon fallback
 
 ## Commands

@@ -1,9 +1,3 @@
--- Clipboard for sessions whose yanks may need to reach another machine:
--- every copy is emitted as OSC 52 (inside tmux this becomes a tmux buffer,
--- rebroadcast to every attached client, local or SSH). Paste prefers the
--- local Wayland clipboard when one is available, so content copied in other
--- apps remains pasteable; without a display, paste is an OSC 52 query that
--- tmux (or the terminal) answers.
 local M = {}
 
 local function proc_lines(pid, file)
@@ -55,14 +49,12 @@ function M.setup()
     and vim.fn.executable("wl-paste") == 1
 
   local function sys_copy_async(cmd, lines)
-    -- Sync vim.fn.system() fork+exec on EVERY yank blocks typing for ms.
-    -- Fire-and-forget via jobstart instead (nvim reaps the child).
     if type(lines) == "string" then
       lines = vim.split(lines, "\n", { plain = true })
     end
     local job = vim.fn.jobstart(cmd)
     if job <= 0 then
-      vim.fn.system(cmd, lines) -- rare fallback
+      vim.fn.system(cmd, lines)
       return
     end
     pcall(vim.fn.chansend, job, lines)
@@ -111,8 +103,6 @@ function M.setup()
   }
 end
 
--- Deferred setup owns its seam here (not in options.lua): requiring this
--- module registers the one-shot hook, and setup() runs on VeryLazy.
 vim.api.nvim_create_autocmd("User", {
   pattern = "VeryLazy",
   once = true,

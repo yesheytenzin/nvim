@@ -1,8 +1,3 @@
---[[
-  Health check for this configuration: :checkhealth custom
-  Reports the Neovim version and the external tools the config relies on.
---]]
-
 local function check_version()
   local verstr = tostring(vim.version())
   if not vim.version.ge then
@@ -17,11 +12,8 @@ local function check_version()
   end
 end
 
--- Tools the config cannot start without.
 local required = { "git", "make", "rg", "fd", "fzf" }
 
--- Tools only some languages need. A missing one is a hint, not a failure:
--- clangd is for C/C++, mise runs the Ruby LSP, zls is for Zig.
 local optional = { "clangd", "mise", "zls" }
 
 local function check_external_reqs()

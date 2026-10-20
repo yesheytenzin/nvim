@@ -1,11 +1,5 @@
--- Toolchain manifests, made live: :Toolchain shows everything wanted vs
--- installed (parsers, servers, tools, zls), and saving either manifest file
--- installs what was just added — no restart, no :MasonToolsInstall.
--- Manifests: lua/custom/parser_manifest.lua, lua/custom/lsp_manifest.lua.
 local M = {}
 
---- Re-require a manifest so save-handlers see the just-written content.
---- @param name string
 local function fresh(name)
   package.loaded[name] = nil
   return require(name)
@@ -18,8 +12,6 @@ end
 
 local group = vim.api.nvim_create_augroup("ConfigToolchain", { clear = true })
 
--- Added parser names install in the background; reopen buffers of that
--- filetype to start highlighting with them.
 vim.api.nvim_create_autocmd("BufWritePost", {
   group = group,
   pattern = "parser_manifest.lua",
@@ -42,9 +34,6 @@ vim.api.nvim_create_autocmd("BufWritePost", {
   end,
 })
 
--- Added servers/tools install in the background via Mason. A new server only
--- attaches after reopen/restart (its lspconfig enable lives in lsp.lua,
--- which runs once at load).
 vim.api.nvim_create_autocmd("BufWritePost", {
   group = group,
   pattern = "lsp_manifest.lua",
@@ -70,8 +59,6 @@ vim.api.nvim_create_autocmd("BufWritePost", {
         return t.name
       end, manifest.tools)
     )
-    -- Presence-only on save: no surprise downgrades from an edit. Version
-    -- drift is flagged by :Toolchain and fixed by scripts/bootstrap.sh.
     local missing = require("custom.manifest_util").mason_missing(mr, pkgs)
     if #missing == 0 then
       vim.notify("Toolchain: servers + tools already complete", vim.log.levels.INFO)
@@ -85,9 +72,6 @@ vim.api.nvim_create_autocmd("BufWritePost", {
   end,
 })
 
---- :Toolchain status view: wanted vs installed for every manifest entry.
---- Version drift (installed ≠ pin) and Mason packages outside the manifest
---- are flagged so `MasonToolsClean` candidates are visible, never auto-removed.
 function M.show()
   require("custom.pack").load("mason.nvim")
   local mr_ok, mr = pcall(require, "mason-registry")
@@ -117,9 +101,6 @@ function M.show()
     lines[#lines + 1] = ("  %s %s (%s)"):format(state, s.lsp, s.mason)
   end
 
-  -- Ruby gems owned by mise: one copy per Ruby, at the pinned version. A
-  -- Ruby whose copy is missing or stale breaks the LSP for projects pinned
-  -- to it, so the rubies that need attention are named.
   lines[#lines + 1] = ""
   lines[#lines + 1] = "Gems (mise — one copy per Ruby)"
   for _, g in ipairs(manifest.gems or {}) do
@@ -156,8 +137,6 @@ function M.show()
   end
   lines[#lines + 1] = "zls: " .. zls_state
 
-  -- Installed Mason packages that no manifest owns: review candidates for
-  -- :MasonToolsClean. Listed only — never removed automatically.
   if mr_ok then
     local owned = {}
     for _, s in ipairs(manifest.servers) do

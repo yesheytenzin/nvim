@@ -1,19 +1,8 @@
--- Native plugin management on top of Neovim's built-in vim.pack + :packadd.
---
--- vim.pack owns install / update / lock; this module supplies the pieces it
--- deliberately omits: trigger-driven loading (keys / cmd / ft / event /
--- colorscheme) and a per-plugin config() lifecycle. No third-party manager.
---
--- Loading model: every plugin is added with load = false (installed, on the
--- runtimepath, plugin/ files unsourced). The first trigger fires
--- :packadd <name> and runs the spec's config(). Dependencies load first.
--- `eager = true` skips the trigger and loads at startup, in declaration order.
-
 local M = {}
 
-local specs = {} --- @type table<string, table>
-local states = {} --- @type table<string, "registered"|"loading"|"loaded"|"failed">
-local cmd_index = {} --- @type table<string, string>
+local specs = {}
+local states = {}
+local cmd_index = {}
 
 local group = vim.api.nvim_create_augroup("ConfigPack", { clear = true })
 
@@ -21,7 +10,6 @@ local function basename(src)
   return (src:gsub("%.git$", ""):match("[^/]+$"))
 end
 
--- vim.pack wants a git-clone-able URI; specs use the short "owner/repo" form.
 local function full_src(src)
   if src:find("://", 1, true) or src:match("^[%w]+:") then
     return src
@@ -29,8 +17,6 @@ local function full_src(src)
   return "https://github.com/" .. src
 end
 
--- Shared with lua/custom/omarchy_theme.lua (omarchy theme bridge), which resolves the same
--- short specs outside the pack lifecycle.
 M.basename = basename
 M.full_src = full_src
 
@@ -38,8 +24,6 @@ local function plugin_dir(name)
   return vim.fs.joinpath(vim.fn.stdpath("data"), "site", "pack", "core", "opt", name)
 end
 
--- :packadd sources plugin/ and ftdetect/ but not after/plugin/. Mirror what
--- vim.pack does internally and source those explicitly so after/ hooks run.
 local function source_after_plugin(name)
   for _, file in ipairs(vim.fn.glob(plugin_dir(name) .. "/after/plugin/**/*.{vim,lua}", false, true)) do
     local ok, err = pcall(vim.cmd.source, file)
@@ -93,9 +77,6 @@ local function fail(name, stage, err)
   return false
 end
 
---- Load a plugin and its dependencies. Successful and failed loads are idempotent.
---- @param name string
---- @return boolean
 function M.load(name)
   if states[name] == "loaded" then
     return true
@@ -180,9 +161,6 @@ local function install_keys(name, keys)
   end
 end
 
--- Commands are not pre-defined (that would shadow the plugin's real ones).
--- CmdUndefined fires for unknown commands; we load the owning plugin and
--- Neovim re-runs the command with its original arguments.
 local function install_commands(name, cmds)
   if type(cmds) == "string" then
     cmds = { cmds }
@@ -221,7 +199,6 @@ local function install_events(name, events)
   end
 end
 
---- @param list table[] aggregated plugin specs
 function M.setup(list)
   vim.api.nvim_clear_autocmds({ group = group })
   local previous_specs = specs
@@ -230,7 +207,6 @@ function M.setup(list)
   states = {}
   cmd_index = {}
 
-  -- Register the build hook before the first add() so install-time builds run.
   vim.api.nvim_create_autocmd("PackChanged", {
     group = group,
     callback = function(ev)
@@ -282,15 +258,11 @@ function M.setup(list)
     end
   end
 
-  -- vim.pack installs into stdpath('data')/site; ensure it is on 'packpath'
-  -- (lazy.nvim used to reset packpath to the runtime only).
   local site = vim.fs.joinpath(vim.fn.stdpath("data"), "site")
   if not vim.o.packpath:find(site, 1, true) then
     vim.opt.packpath:prepend(site)
   end
 
-  -- A single unreachable repo must not abort startup; vim.pack reports the
-  -- per-plugin errors and we surface them, then continue with what's on disk.
   local before = {}
   for _, p in ipairs(vim.api.nvim_list_runtime_paths()) do
     before[vim.fs.normalize(p)] = true
@@ -299,10 +271,6 @@ function M.setup(list)
   if not ok then
     vim.notify(("pack: install problems:\n%s"):format(err), vim.log.levels.ERROR)
   end
-  -- vim.pack.add appends each plugin to 'runtimepath' (via :packadd!). Neovim
-  -- would then source every plugin/ file during the startup plugin phase,
-  -- which would defeat lazy loading. Drop the newly added entries; M.load
-  -- re-adds each one on demand with a real :packadd (which sources it).
   local kept = {}
   for _, p in ipairs(vim.api.nvim_list_runtime_paths()) do
     if before[vim.fs.normalize(p)] then
@@ -347,8 +315,6 @@ function M.setup(list)
   end
 end
 
---- Names of all registered specs (for tooling / verification).
---- @return string[]
 function M.list()
   local names = {}
   for name in pairs(specs) do
@@ -358,8 +324,6 @@ function M.list()
   return names
 end
 
--- Emulate lazy.nvim's VeryLazy: one User event after startup. Modules
--- (remote_clipboard, theme) hook it, and specs may use event = { "VeryLazy" }.
 vim.api.nvim_create_autocmd("VimEnter", {
   once = true,
   callback = function()

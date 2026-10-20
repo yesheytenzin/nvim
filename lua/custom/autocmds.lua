@@ -1,9 +1,3 @@
--- Project autocmds: filetype indents, auto-cd, netrw, big-file guard, and
--- Primeagen's trim-on-save. LSP keymaps live with the LSP spec in
--- plugins/lsp.lua (same concern, one place).
-
--- Ruby/Rails API: 2-space indent, no wrap. Everything else keeps the global
--- 4-space default from options.lua.
 vim.api.nvim_create_autocmd("FileType", {
   pattern = { "ruby", "eruby", "yaml" },
   callback = function()
@@ -13,12 +7,13 @@ vim.api.nvim_create_autocmd("FileType", {
   end,
 })
 
--- Auto-cd to the current buffer's project root (Gemfile/.git). vim.fs.root just checks
--- that the marker exists, so this resolves correctly in a git worktree too (.git there
--- is a file, not a directory, but it's still detected) — fixes pickers like Telescope
--- searching the wrong directory when a buffer is opened outside nvim's launch cwd.
--- Window-local (:lcd, not :cd): a global cd flaps under multi-window splits and
--- fights Telescope/harpoon cwd expectations.
+vim.api.nvim_create_autocmd("TextYankPost", {
+  group = vim.api.nvim_create_augroup("ConfigYankHighlight", { clear = true }),
+  callback = function()
+    vim.hl.on_yank({ timeout = 150 })
+  end,
+})
+
 local AutoCdGroup = vim.api.nvim_create_augroup("ConfigAutoCd", { clear = true })
 vim.api.nvim_create_autocmd("BufEnter", {
   group = AutoCdGroup,
@@ -38,10 +33,6 @@ vim.api.nvim_create_autocmd("BufEnter", {
   end,
 })
 
--- netrw's stock "p" (preview) map is a trap: it's a bare single-key map (no <leader>),
--- so it's easy to hit by accident while browsing, and it errors outright on directories
--- ("sorry, cannot preview a directory such as <...>"). This workflow already has
--- fzf-lua for previewing/finding files, so just remove the accident-prone map.
 vim.api.nvim_create_autocmd("FileType", {
   group = AutoCdGroup,
   pattern = "netrw",
@@ -50,9 +41,17 @@ vim.api.nvim_create_autocmd("FileType", {
   end,
 })
 
--- Big-file guard (>1MB): regex syntax + treesitter + relativenumber on huge
--- files (minified/generated) are the classic scroll/edit stutter culprits.
--- One stat syscall per open; flags consumed by treesitter/trim below.
+vim.api.nvim_create_autocmd({ "BufEnter", "BufLeave", "FileType" }, {
+  group = AutoCdGroup,
+  callback = function(e)
+    vim.schedule(function()
+      if vim.api.nvim_buf_is_valid(e.buf) and vim.fn.isdirectory(vim.api.nvim_buf_get_name(e.buf)) == 1 then
+        vim.bo[e.buf].buflisted = false
+      end
+    end)
+  end,
+})
+
 local BigFileGroup = vim.api.nvim_create_augroup("ConfigBigFile", { clear = true })
 vim.api.nvim_create_autocmd("BufReadPre", {
   group = BigFileGroup,
@@ -71,9 +70,6 @@ vim.api.nvim_create_autocmd("FileType", {
     if vim.b[e.buf].bigfile then
       vim.opt_local.relativenumber = false
       vim.opt_local.syntax = "off"
-      -- FileType's built-in syntax.vim handler runs after this autocmd and
-      -- re-enables syntax from the filetype, so switch it off once more after
-      -- the event has fully settled.
       vim.schedule(function()
         if vim.api.nvim_buf_is_valid(e.buf) then
           vim.bo[e.buf].syntax = "off"
@@ -83,9 +79,6 @@ vim.api.nvim_create_autocmd("FileType", {
   end,
 })
 
--- Primeagen: trim trailing whitespace on save (prevents rubocop/clang noise)
--- keeppatterns/keepjumps: don't pollute search history or jumplist on every
--- save. Skipped for big files (full-buffer scan on each write = save lag).
 local PrimeagenGroup = vim.api.nvim_create_augroup("ThePrimeagen", { clear = true })
 vim.api.nvim_create_autocmd("BufWritePre", {
   group = PrimeagenGroup,
@@ -100,6 +93,3 @@ vim.api.nvim_create_autocmd("BufWritePre", {
     vim.cmd([[silent! keeppatterns keepjumps %s/\s\+$//e]])
   end,
 })
-
--- NOTE: no insert-mode <C-h> map here: it would shadow <C-h> = backspace on
--- every buffer (even without LSP). Window navigation keeps normal-mode <C-h>.

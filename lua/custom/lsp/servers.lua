@@ -17,19 +17,17 @@ function M.setup()
   })
   vim.lsp.config("clangd", {
     capabilities = capabilities,
-    -- Keep clang-tidy project-owned through .clangd instead of applying its
-    -- checks to every C++ file opened by this shared config.
     cmd = { "clangd", "--background-index", "--background-index-priority=low", "--header-insertion=never" },
     filetypes = { "c", "cpp", "objc", "objcpp" },
   })
   vim.lsp.config("ruby_lsp", {
     capabilities = capabilities,
     cmd = ruby.command(),
+    flags = { debounce_text_changes = 0 },
+    on_init = ruby.sequence_completion,
     init_options = {
       enabledFeatures = { diagnostics = true },
       addonSettings = {
-        -- The Rails addon otherwise opens a blocking migration prompt, which
-        -- also prevents headless verification from completing.
         ["Ruby LSP Rails"] = { enablePendingMigrationsPrompt = false },
       },
     },

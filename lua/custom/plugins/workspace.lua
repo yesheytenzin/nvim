@@ -1,4 +1,3 @@
--- Workspace/session management: persistence + project-local settings
 return {
   {
     "folke/persistence.nvim",
