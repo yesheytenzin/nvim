@@ -1,14 +1,26 @@
--- You can add your own plugins here or in other files in this directory!
---  I promise not to create any merge conflicts in this directory :)
---
--- See the kickstart.nvim README for more information
+-- Aggregates every plugin spec module into one list for pack.setup().
+-- (The active theme spec is NOT here: lua/custom/omarchy_theme.lua reads the
+-- omarchy-managed neovim.lua at runtime and installs that theme itself.)
+local specs = {}
 
--- Iterate over all Lua files in the plugins directory and load them.
--- `vim.fs.dir()` iteration order is unspecified and must not be relied upon.
-local plugins_dir = vim.fs.joinpath(vim.fn.stdpath 'config', 'lua', 'custom', 'plugins')
-for file_name, type in vim.fs.dir(plugins_dir, { follow = true }) do
-  if (type == 'file' or type == 'link') and file_name:match '%.lua$' and file_name ~= 'init.lua' then
-    local module = file_name:gsub('%.lua$', '')
-    require('custom.plugins.' .. module)
+for _, name in ipairs({
+  "deps",
+  "ui",
+  "lsp",
+  "completion",
+  "treesitter",
+  "editor",
+  "git",
+  "harpoon",
+  "navigation",
+  "rails",
+  "themes",
+  "whichkey",
+  "workspace",
+}) do
+  for _, spec in ipairs(require("custom.plugins." .. name)) do
+    specs[#specs + 1] = spec
   end
 end
+
+return specs
