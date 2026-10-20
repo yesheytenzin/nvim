@@ -6,7 +6,8 @@
     },
     "aether": {
       "rev": "567efb778534e11ee1072d4fe27178f705a27d8a",
-      "src": "https://github.com/bjarneo/aether.nvim"
+      "src": "https://github.com/bjarneo/aether.nvim",
+      "version": "'v3'"
     },
     "blink.cmp": {
       "rev": "78336bc89ee5365633bcf754d93df01678b5c08f",
