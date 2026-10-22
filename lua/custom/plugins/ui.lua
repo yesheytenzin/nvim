@@ -33,38 +33,11 @@ return {
       icons.setup()
       icons.mock_nvim_web_devicons()
 
-      local function path_from_launch_dir()
-        local name = vim.api.nvim_buf_get_name(0)
-        if name == "" then
-          return "[No Name]"
-        end
-        local path = vim.fs.relpath(vim.fn.getcwd(-1, -1), name) or vim.fn.fnamemodify(name, ":~")
-        return (path:gsub("%%", "%%%%"))
-      end
-
       local statusline = require("mini.statusline")
-      statusline.setup({
-        use_icons = vim.g.have_nerd_font,
-        content = {
-          active = function()
-            local mode, mode_hl = statusline.section_mode({ trunc_width = math.huge })
-            local diagnostics = statusline.section_diagnostics({ trunc_width = 0, icon = "" })
-            return statusline.combine_groups({
-              { hl = mode_hl, strings = { mode } },
-              {
-                hl = "MiniStatuslineFilename",
-                strings = { path_from_launch_dir() .. "%{&modified ? ' [+]' : ''}" },
-              },
-              "%=",
-              { hl = "MiniStatuslineFilename", strings = { diagnostics } },
-              { hl = mode_hl, strings = { "%l:%v" } },
-            })
-          end,
-          inactive = function()
-            return "%#MiniStatuslineInactive# " .. path_from_launch_dir() .. "%="
-          end,
-        },
-      })
+      statusline.setup({ use_icons = vim.g.have_nerd_font })
+      statusline.section_location = function()
+        return "%2l:%-2v"
+      end
     end,
   },
 
