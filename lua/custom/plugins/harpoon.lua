@@ -12,7 +12,7 @@ return {
         desc = "Harpoon add",
       },
       {
-        "<leader>h",
+        "<leader>hm",
         function()
           local width = math.max(vim.api.nvim_win_get_width(0) - 4, 1)
           require("harpoon").ui:toggle_quick_menu(require("harpoon"):list(), {

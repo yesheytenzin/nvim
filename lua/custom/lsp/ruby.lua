@@ -1,10 +1,8 @@
 local M = {}
 
-function M.command()
-  if vim.fn.executable("mise") == 1 and vim.fn.executable("sh") == 1 then
-    return { "sh", "-c", "mise exec -- ruby-lsp || exec ruby-lsp" }
-  end
-  return { "ruby-lsp" }
+function M.command(dispatchers, config)
+  local cmd = vim.fn.executable("mise") == 1 and { "mise", "exec", "--", "ruby", "-S", "ruby-lsp" } or { "ruby-lsp" }
+  return vim.lsp.rpc.start(cmd, dispatchers, { cwd = config.cmd_cwd or config.root_dir })
 end
 
 function M.sequence_completion(client)

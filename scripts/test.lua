@@ -216,6 +216,50 @@ do
 end
 
 do
+  package.loaded["custom.lsp.ruby"] = nil
+  local original_executable = vim.fn.executable
+  local original_start = vim.lsp.rpc.start
+  local starts = {}
+
+  vim.fn.executable = function(name)
+    return name == "mise" and 1 or original_executable(name)
+  end
+  vim.lsp.rpc.start = function(argv, dispatchers, options)
+    starts[#starts + 1] = { argv = argv, dispatchers = dispatchers, options = options }
+    return "rpc-client"
+  end
+
+  local ruby = require("custom.lsp.ruby")
+  local dispatchers = {}
+  local client = ruby.command(dispatchers, { root_dir = "/work/app" })
+  check(
+    "Ruby LSP starts once through mise in the project root",
+    client == "rpc-client"
+      and #starts == 1
+      and vim.deep_equal(starts[1].argv, { "mise", "exec", "--", "ruby", "-S", "ruby-lsp" })
+      and starts[1].dispatchers == dispatchers
+      and vim.deep_equal(starts[1].options, { cwd = "/work/app" })
+  )
+
+  starts = {}
+  vim.fn.executable = function(name)
+    return name == "mise" and 0 or original_executable(name)
+  end
+  client = ruby.command(dispatchers, { root_dir = "/work/app", cmd_cwd = "/work/override" })
+  check(
+    "Ruby LSP starts once without mise and honors cmd_cwd",
+    client == "rpc-client"
+      and #starts == 1
+      and vim.deep_equal(starts[1].argv, { "ruby-lsp" })
+      and starts[1].dispatchers == dispatchers
+      and vim.deep_equal(starts[1].options, { cwd = "/work/override" })
+  )
+
+  vim.fn.executable = original_executable
+  vim.lsp.rpc.start = original_start
+end
+
+do
   package.loaded["custom.terminal"] = nil
   local original_jobstart = vim.fn.jobstart
   local argv

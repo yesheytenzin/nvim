@@ -44,7 +44,7 @@ Requires `nvim >=0.12`, `git`, `make`, `rg`, `fd`, `fzf`, `clangd`,
 ## Features
 
 - **Search:** fzf-lua pickers (`<leader>ff/fg/fb/fr/fd`, `<leader>sg/sw/sW/ss/sS`, `<leader>sh`)
-- **Navigation:** Harpoon 2 (`<leader>a` add, `<leader>h` menu, `<leader>1-9` jump), aerial outline (`<leader>co`), persistence sessions (`<leader>qs/qS/ql/qd`)
+- **Navigation:** Harpoon 2 (`<leader>ha` add, `<leader>hm` menu, `<leader>1-9` jump), aerial outline (`<leader>co`), persistence sessions (`<leader>qs/qS/ql/qd`)
 - **Git:** fugitive (`<leader>gs/gp/gP/gu`), mergeui 3-pane merge (`<leader>gm`, take left/right with `gh`/`gl`), gitsigns hunks (`]h`/`[h`, `<leader>gh*`)
 - **Editor:** trouble (`<leader>xx/xb/xl/xq/cl`), undotree (`<leader>ut`), cloak for `.env*`, zen mode (`<leader>zz/zZ`), inc-rename (`<leader>cr`), Treesitter textobjects (`af/if`), mini.ai/surround
 - **Rails:** vim-rails navigation (`<leader>ra/rr/rm/rc/rv/rd`) and ruby_lsp under the project's mise Ruby

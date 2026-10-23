@@ -22,7 +22,7 @@ function M.setup()
   })
   vim.lsp.config("ruby_lsp", {
     capabilities = capabilities,
-    cmd = ruby.command(),
+    cmd = ruby.command,
     flags = { debounce_text_changes = 0 },
     on_init = ruby.sequence_completion,
     init_options = {
