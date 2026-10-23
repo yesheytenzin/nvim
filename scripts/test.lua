@@ -260,6 +260,83 @@ do
 end
 
 do
+  local spec = require("custom.plugins.harpoon")[1]
+  local handlers = {}
+  for _, key in ipairs(spec.keys) do
+    handlers[key[1]] = key[2]
+  end
+
+  local list = { items = {}, _length = 0, adds = 0, clears = 0 }
+  function list:add()
+    self.adds = self.adds + 1
+    self.items[#self.items + 1] = {}
+    self._length = #self.items
+  end
+  function list:length()
+    return self._length
+  end
+  function list:clear()
+    self.clears = self.clears + 1
+    self.items = {}
+    self._length = 0
+  end
+
+  local toggled
+  package.loaded["harpoon"] = {
+    list = function()
+      return list
+    end,
+    ui = {
+      toggle_quick_menu = function(_, active_list)
+        toggled = active_list
+      end,
+    },
+  }
+
+  local original_buf_get_name = vim.api.nvim_buf_get_name
+  local original_isdirectory = vim.fn.isdirectory
+  local original_notify = vim.notify
+  local notes = {}
+  vim.notify = function(message)
+    notes[#notes + 1] = message
+  end
+
+  vim.api.nvim_buf_get_name = function()
+    return ""
+  end
+  handlers["<leader>ha"]()
+  check(
+    "harpoon add ignores buffers without a file",
+    list.adds == 0 and #notes == 1 and notes[1]:find("no file", 1, true) ~= nil
+  )
+
+  vim.api.nvim_buf_get_name = function()
+    return "/tmp/project/app.lua"
+  end
+  vim.fn.isdirectory = function()
+    return 1
+  end
+  handlers["<leader>ha"]()
+  check("harpoon add ignores directories", list.adds == 0)
+
+  vim.fn.isdirectory = function()
+    return 0
+  end
+  handlers["<leader>ha"]()
+  check("harpoon add marks a file buffer", list.adds == 1 and list:length() == 1)
+
+  list.items = {}
+  list._length = 1
+  handlers["<leader>hm"]()
+  check("harpoon menu clears phantom entries", list:length() == 0 and toggled == list)
+
+  vim.api.nvim_buf_get_name = original_buf_get_name
+  vim.fn.isdirectory = original_isdirectory
+  vim.notify = original_notify
+  package.loaded["harpoon"] = nil
+end
+
+do
   package.loaded["custom.terminal"] = nil
   local original_jobstart = vim.fn.jobstart
   local argv
