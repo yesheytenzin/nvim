@@ -112,7 +112,7 @@ for _, m in ipairs({
   "<leader>sw",
   "<leader>ss",
   "<leader>h",
-  "<leader>a",
+  "<leader>ha",
   "<leader>tr",
   "<leader>tt",
   "<leader>tl",
