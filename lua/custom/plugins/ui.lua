@@ -35,6 +35,25 @@ return {
 
       local statusline = require("mini.statusline")
       statusline.setup({ use_icons = vim.g.have_nerd_font })
+      local function apply_still_statusline()
+        local theme_name = vim.fn.expand("~/.local/state/omarchy/current/theme.name")
+        if vim.g.colors_name ~= "aether" or vim.fn.filereadable(theme_name) ~= 1
+          or vim.fn.readfile(theme_name)[1] ~= "still" then
+          return
+        end
+        local normal = vim.api.nvim_get_hl(0, { name = "Normal", link = false })
+        local bar = vim.api.nvim_get_hl(0, { name = "StatusLine", link = false })
+        local info = vim.api.nvim_get_hl(0, { name = "MiniStatuslineDevinfo", link = false })
+        vim.api.nvim_set_hl(0, "MiniStatuslineFilename", { fg = normal.fg, bg = bar.bg })
+        for _, name in ipairs({ "MiniStatuslineDevinfo", "MiniStatuslineFileinfo", "MiniStatuslineInactive" }) do
+          vim.api.nvim_set_hl(0, name, { fg = info.fg, bg = bar.bg })
+        end
+      end
+      vim.api.nvim_create_autocmd("ColorScheme", {
+        group = vim.api.nvim_create_augroup("StillStatusline", { clear = true }),
+        callback = apply_still_statusline,
+      })
+      apply_still_statusline()
       statusline.section_location = function()
         return "%2l:%-2v"
       end
