@@ -1,7 +1,10 @@
 local M = {}
 
 function M.setup()
-  local capabilities = require("blink.cmp").get_lsp_capabilities()
+  -- Lazy-safe: blink.cmp is InsertEnter-lazy, don't force it early on FileType.
+  local ok_blink, blink = pcall(require, "blink.cmp")
+  local capabilities = ok_blink and blink.get_lsp_capabilities()
+    or vim.lsp.protocol.make_client_capabilities()
   local ruby = require("custom.lsp.ruby")
 
   vim.lsp.config("lua_ls", {
@@ -23,8 +26,9 @@ function M.setup()
   vim.lsp.config("ruby_lsp", {
     capabilities = capabilities,
     cmd = ruby.command,
-    flags = { debounce_text_changes = 0 },
-    on_init = ruby.sequence_completion,
+    -- 0 flooded the server on every keystroke and slowed indexing.
+    -- 150ms is the standard sweet spot for responsiveness vs. load.
+    flags = { debounce_text_changes = 150 },
     init_options = {
       enabledFeatures = { diagnostics = true },
       addonSettings = {
@@ -65,7 +69,7 @@ function M.setup()
       prefix = "",
     },
   })
-  ruby.setup_refresh()
+  -- Incremental sync keeps the server fresh; no fake didOpen loop needed.
 end
 
 return M

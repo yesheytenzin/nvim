@@ -1,3 +1,8 @@
+pcall(require, "custom.theme_switcher")
+vim.keymap.set("n", "<leader>th", function()
+  require("custom.theme_switcher").pick()
+end, { desc = "Theme switch (live preview)" })
+
 return {
   {
     "rose-pine/neovim",

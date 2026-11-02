@@ -42,9 +42,10 @@ vim.opt.laststatus = 2
 vim.opt.splitright = true
 vim.opt.shortmess:append("c")
 vim.opt.mouse = "a"
-vim.opt.pumheight = 0
+-- 0 = unbounded menu, slow to render with many LSP items.
+vim.opt.pumheight = 12
 
-vim.opt.redrawtime = 1500
+vim.opt.redrawtime = 500
 vim.opt.synmaxcol = 300
 vim.opt.maxmempattern = 20000
 
