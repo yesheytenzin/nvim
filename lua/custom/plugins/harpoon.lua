@@ -66,11 +66,11 @@ return {
           if list:length() > 0 and next(list.items) == nil then
             list:clear()
           end
-          local width = math.max(vim.api.nvim_win_get_width(0) - 4, 1)
+          local width = math.min(math.max(math.floor(vim.api.nvim_win_get_width(0) * 0.6), 1), 80)
           require("harpoon").ui:toggle_quick_menu(list, {
             ui_fallback_width = width,
-            ui_width_ratio = 1,
-            ui_max_width = width,
+            ui_width_ratio = 0.6,
+            ui_max_width = 80,
           })
         end,
         desc = "Harpoon menu",
