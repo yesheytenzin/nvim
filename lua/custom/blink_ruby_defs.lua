@@ -269,6 +269,8 @@ local RAILS_DSL = {
   { word = "sequence", detail = "FactoryBot", doc = "sequence(:email) { |n| \"u#{n}@x.com\" }" },
   { word = "association", detail = "FactoryBot", doc = "association :author" },
   -- Ruby extras
+  { word = "class", detail = "Ruby: class", doc = "class User < ApplicationRecord … end" },
+  { word = "module", detail = "Ruby: module", doc = "module Approvals … end" },
   { word = "raise", detail = "Ruby: raise", doc = 'raise "boom"' },
   { word = "yield", detail = "Ruby: yield", doc = "yield(arg) if block_given?" },
   { word = "super", detail = "Ruby: super", doc = "super" },
@@ -278,7 +280,9 @@ local RAILS_DSL = {
   { word = "module_function", detail = "Ruby", doc = "module_function :helper" },
 }
 
--- Association / validation option keys: `belongs_to :x, class_name:` etc.
+-- Rails base classes: superclass references like `< ApplicationRecord`
+-- never appear as project `class` defs, so complete them statically.
+local RAILS_CONSTANTS = { "ApplicationRecord", "ApplicationController", "ApplicationJob", "ApplicationMailer", "ApplicationHelper" }
 -- These are bare words before the colon, so they never come from the
 -- `def`-scan above and ruby-lsp often misses them mid-line while typing.
 local RAILS_OPTIONS = {
@@ -440,7 +444,12 @@ function M:get_completions(ctx, callback)
   end
   local ok = pcall(function()
     local before = ctx.line:sub(1, ctx.bounds.start_col - 1)
-    if before:match("[%.:]$") then
+    -- Single `:` starts a symbol (`:process`) and `.` a method call:
+    -- our bare-word DSL doesn't apply there, let LSP/buffer handle it.
+    -- But `::` is a namespace (`Approvals::Process`), where constant
+    -- completion DOES apply, so only bail on a lone trailing colon.
+    local namespaced = before:match("::$") ~= nil
+    if not namespaced and before:match("[%.:]$") then
       done({})
       return
     end
@@ -501,7 +510,10 @@ function M:get_completions(ctx, callback)
     -- Always offer Rails/Ruby DSL keywords (belongs_to, validates, …).
     -- Blink fuzzy-filters by what you typed, so returning the full list
     -- is cheap and keeps them visible even while ruby-lsp is indexing.
+    -- After `::` only constants apply, so skip bare-word DSL there.
     local Keyword = vim.lsp.protocol.CompletionItemKind.Keyword
+    local Class = vim.lsp.protocol.CompletionItemKind.Class
+    if not namespaced then
     for _, dsl in ipairs(RAILS_DSL) do
       if not seen_names[dsl.word] then
         seen_names[dsl.word] = true
@@ -526,6 +538,21 @@ function M:get_completions(ctx, callback)
           detail = opt.detail,
           documentation = opt.doc,
           insertText = opt.word .. ": ",
+          insertTextFormat = vim.lsp.protocol.InsertTextFormat.PlainText,
+        }
+      end
+    end
+    end
+    for _, const in ipairs(RAILS_CONSTANTS) do
+      -- `class ApproverSet < ApplicationRecord`: base classes never
+      -- appear as project defs, and apply after `::` too.
+      if not seen_names[const] then
+        seen_names[const] = true
+        items[#items + 1] = {
+          label = const,
+          kind = Class,
+          detail = "Rails base class",
+          insertText = const,
           insertTextFormat = vim.lsp.protocol.InsertTextFormat.PlainText,
         }
       end

@@ -11,6 +11,7 @@ require("custom.toolchain")
 require("custom.pack").setup(require("custom.plugins"))
 
 require("custom.omarchy_theme").load()
+require("custom.transparency")
 
 vim.api.nvim_create_user_command("ConfigReload", function(opts)
   if require("custom.pack").load("plenary.nvim") then
