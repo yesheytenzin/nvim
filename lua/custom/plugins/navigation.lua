@@ -56,7 +56,32 @@ return {
     },
     config = function()
       require("fzf-lua").setup({
-        winopts = { backdrop = false },
+        -- Minimal everywhere: plain box, no chrome, preview off by
+        -- default (toggle with F4 when you actually need it).
+        defaults = { file_icons = false, git_icons = false },
+        fzf_opts = { ["--no-scrollbar"] = true, ["--no-separator"] = true },
+        winopts = {
+          height = 0.60,
+          width = 0.60,
+          row = 0.35,
+          col = 0.50,
+          border = "single",
+          backdrop = false,
+          title = "",
+          title_flags = false,
+          preview = {
+            hidden = true,
+            border = "noborder",
+            scrollbar = false,
+            title = false,
+          },
+        },
+        files = { prompt = "❯ ", cwd_prompt = false },
+        grep = { prompt = "❯ ", rg_glob = true },
+        buffers = { prompt = "❯ " },
+        helptags = { prompt = "❯ " },
+        oldfiles = { prompt = "❯ " },
+        lsp = { prompt = "❯ " },
       })
     end,
   },

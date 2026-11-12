@@ -7,18 +7,31 @@ return {
     deps = { "friendly-snippets" },
     config = function()
       require("blink.cmp").setup({
+        appearance = { nerd_font_variant = "mono" },
         keymap = {
           preset = "enter",
           ["<Tab>"] = { "select_and_accept", "snippet_forward", "fallback" },
+          ["<C-k>"] = { "show_documentation", "hide_documentation", "fallback" },
+          ["<C-d>"] = { "scroll_documentation_down", "fallback" },
+          ["<C-u>"] = { "scroll_documentation_up", "fallback" },
         },
         completion = {
-          menu = { direction_priority = { "s" } },
+          menu = {
+            border = "single",
+            scrollbar = false,
+            direction_priority = { "s", "n" },
+            draw = {
+              columns = { { "label", "label_description", gap = 1 }, { "kind_icon", "kind" } },
+              treesitter = { "lsp" },
+            },
+          },
           list = {
             selection = { preselect = false, auto_insert = false },
             max_items = 30,
           },
-          -- Don't pop documentation on every keystroke (main insert-mode lag).
-          documentation = { auto_show = false },
+          -- Local DSL docs are cheap; LSP docs arrive async. Small delay
+          -- keeps `belongs_to` discoverable without per-keystroke lag.
+          documentation = { auto_show = true, auto_show_delay_ms = 250, window = { border = "single", scrollbar = false } },
           trigger = { show_on_keyword = true, show_on_trigger_character = true },
         },
         fuzzy = { implementation = "prefer_rust_with_warning" },
@@ -57,7 +70,7 @@ return {
         },
         cmdline = {
           keymap = { preset = "cmdline" },
-          completion = { menu = { auto_show = true } },
+          completion = { menu = { auto_show = true, border = "single" } },
         },
       })
     end,

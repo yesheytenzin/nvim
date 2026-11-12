@@ -94,6 +94,69 @@ end
 
 local buffer_cache = {}
 
+-- Static Rails / Ruby DSL keywords. ruby-lsp only suggests these after
+-- indexing finishes (often seconds after open / :w), so `belongs_to`,
+-- `has_many`, `validates`, … were missing from blink right when you need
+-- them. This always-on list guarantees they complete instantly, LSP or not.
+local RAILS_DSL = {
+  -- ActiveRecord associations
+  { word = "belongs_to", detail = "Rails: belongs_to :name", doc = "belongs_to :author, optional: true" },
+  { word = "has_many", detail = "Rails: has_many :names", doc = "has_many :posts, dependent: :destroy" },
+  { word = "has_one", detail = "Rails: has_one :name", doc = "has_one :profile, dependent: :destroy" },
+  { word = "has_and_belongs_to_many", detail = "Rails: HABTM", doc = "has_and_belongs_to_many :tags" },
+  -- Validations
+  { word = "validates", detail = "Rails: validates :attr", doc = "validates :email, presence: true, uniqueness: true" },
+  { word = "validate", detail = "Rails: custom validate", doc = "validate :must_be_valid" },
+  { word = "validates_with", detail = "Rails: validator class", doc = "validates_with EmailValidator" },
+  -- Callbacks
+  { word = "before_validation", detail = "Rails callback", doc = "before_validation :strip_whitespace" },
+  { word = "after_validation", detail = "Rails callback", doc = "after_validation :report" },
+  { word = "before_save", detail = "Rails callback", doc = "before_save :ensure_defaults" },
+  { word = "around_save", detail = "Rails callback", doc = "around_save :wrap_save" },
+  { word = "after_save", detail = "Rails callback", doc = "after_save :clear_cache" },
+  { word = "before_create", detail = "Rails callback", doc = "before_create :generate_token" },
+  { word = "after_create", detail = "Rails callback", doc = "after_create :send_welcome" },
+  { word = "before_update", detail = "Rails callback", doc = "before_update :touch_edited" },
+  { word = "after_update", detail = "Rails callback", doc = "after_update :reindex" },
+  { word = "before_destroy", detail = "Rails callback", doc = "before_destroy :guard_destroy" },
+  { word = "after_destroy", detail = "Rails callback", doc = "after_destroy :cleanup" },
+  { word = "after_commit", detail = "Rails callback", doc = "after_commit :publish, on: :create" },
+  { word = "after_rollback", detail = "Rails callback", doc = "after_rollback :notify" },
+  -- Models / querying
+  { word = "scope", detail = "Rails: scope :name", doc = "scope :published, -> { where(published: true) }" },
+  { word = "enum", detail = "Rails: enum status:", doc = "enum :status, { active: 0, archived: 1 }" },
+  { word = "delegate", detail = "Rails: delegate :m to:", doc = "delegate :email, to: :user, prefix: true" },
+  { word = "accepts_nested_attributes_for", detail = "Rails nested form", doc = "accepts_nested_attributes_for :posts" },
+  { word = "serialize", detail = "Rails: serialize :col", doc = "serialize :tags, coder: JSON" },
+  { word = "store", detail = "Rails: store :col", doc = "store :settings, accessors: [:theme]" },
+  -- Controllers / filters
+  { word = "before_action", detail = "Rails filter", doc = "before_action :authenticate_user!" },
+  { word = "after_action", detail = "Rails filter", doc = "after_action :log_request" },
+  { word = "around_action", detail = "Rails filter", doc = "around_action :wrap_action" },
+  { word = "skip_before_action", detail = "Rails filter", doc = "skip_before_action :auth, only: :index" },
+  { word = "rescue_from", detail = "Rails: rescue_from Err", doc = "rescue_from ActiveRecord::RecordNotFound, with: :not_found" },
+  -- Migrations / schema
+  { word = "create_table", detail = "Migration", doc = "create_table :posts do |t| … end" },
+  { word = "change_table", detail = "Migration", doc = "change_table :posts do |t| … end" },
+  { word = "add_column", detail = "Migration", doc = "add_column :posts, :title, :string" },
+  { word = "remove_column", detail = "Migration", doc = "remove_column :posts, :title" },
+  { word = "add_index", detail = "Migration", doc = "add_index :posts, :slug, unique: true" },
+  { word = "add_reference", detail = "Migration", doc = "add_reference :posts, :user, foreign_key: true" },
+  { word = "add_foreign_key", detail = "Migration", doc = "add_foreign_key :posts, :users" },
+  -- Ruby core DSL often typed in Rails files
+  { word = "attr_accessor", detail = "Ruby: attr_accessor :x", doc = "attr_accessor :name" },
+  { word = "attr_reader", detail = "Ruby: attr_reader :x", doc = "attr_reader :name" },
+  { word = "attr_writer", detail = "Ruby: attr_writer :x", doc = "attr_writer :name" },
+  { word = "private", detail = "Ruby visibility", doc = "private" },
+  { word = "protected", detail = "Ruby visibility", doc = "protected" },
+  { word = "include", detail = "Ruby: include Mod", doc = "include Comparable" },
+  { word = "extend", detail = "Ruby: extend Mod", doc = "extend ActiveSupport::Concern" },
+  { word = "prepend", detail = "Ruby: prepend Mod", doc = "prepend Overrides" },
+  { word = "require", detail = "Ruby: require \"x\"", doc = "require \"json\"" },
+  { word = "require_relative", detail = "Ruby", doc = "require_relative \"../helper\"" },
+  { word = "frozen_string_literal", detail = "magic comment", doc = "# frozen_string_literal: true" },
+}
+
 -- bufnr integers get reused after :wq + reopen; drop stale entries.
 pcall(vim.api.nvim_create_autocmd, { "BufWipeout", "BufDelete" }, {
   group = vim.api.nvim_create_augroup("ConfigRubyDefsCache", { clear = true }),
@@ -242,6 +305,23 @@ function M:get_completions(ctx, callback)
     local result = scan_buffer(buf)
     if result then
       collect(result, dir, nil)
+    end
+    -- Always offer Rails/Ruby DSL keywords (belongs_to, validates, …).
+    -- Blink fuzzy-filters by what you typed, so returning the full list
+    -- is cheap and keeps them visible even while ruby-lsp is indexing.
+    local Keyword = vim.lsp.protocol.CompletionItemKind.Keyword
+    for _, dsl in ipairs(RAILS_DSL) do
+      if not seen_names[dsl.word] then
+        seen_names[dsl.word] = true
+        items[#items + 1] = {
+          label = dsl.word,
+          kind = Keyword,
+          detail = dsl.detail,
+          documentation = dsl.doc,
+          insertText = dsl.word,
+          insertTextFormat = vim.lsp.protocol.InsertTextFormat.PlainText,
+        }
+      end
     end
     done(items)
   end)
