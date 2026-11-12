@@ -6,6 +6,8 @@ local ok_query, query = pcall(
   [[
   (method name: (_) @def parameters: (method_parameters)? @params)
   (singleton_method name: (_) @def parameters: (method_parameters)? @params)
+  (class name: (_) @classdef)
+  (module name: (_) @classdef)
   (program (call
     method: (identifier) @kind (#any-of? @kind "require" "require_relative")
     arguments: (argument_list . (string (string_content) @path))))
@@ -15,7 +17,7 @@ local ok_query, query = pcall(
 local cache = {}
 
 local function empty_result()
-  return { defs = {}, requires = {} }
+  return { defs = {}, requires = {}, classes = {} }
 end
 
 local function scan(source)
@@ -34,14 +36,18 @@ local function scan(source)
   if not ok_parse or not trees or not trees[1] then
     return empty_result()
   end
-  local defs, requires = {}, {}
+  local defs, requires, classes = {}, {}, {}
   local last_def
   local ok_iter = pcall(function()
     for id, node in query:iter_captures(trees[1]:root(), source) do
       local capture = query.captures[id]
       local ok_text, text = pcall(vim.treesitter.get_node_text, node, source)
       if ok_text and text then
-        if capture == "def" then
+        if capture == "classdef" then
+          -- `class User`, `module Admin`: needed for `class_name: 'User'`
+          -- string values + bare constant completion. Scoped name keeps
+          -- `Admin::User` intact instead of just `User`.
+          classes[#classes + 1] = { name = text }
           local parent = node:parent()
           local grand = parent and parent:parent()
           last_def = { name = text, params = "", top = grand ~= nil and grand:type() == "program" }
@@ -59,7 +65,7 @@ local function scan(source)
   if not ok_iter then
     return empty_result()
   end
-  return { defs = defs, requires = requires }
+  return { defs = defs, requires = requires, classes = classes }
 end
 
 local function mtime_key(stat)
@@ -155,6 +161,173 @@ local RAILS_DSL = {
   { word = "require", detail = "Ruby: require \"x\"", doc = "require \"json\"" },
   { word = "require_relative", detail = "Ruby", doc = "require_relative \"../helper\"" },
   { word = "frozen_string_literal", detail = "magic comment", doc = "# frozen_string_literal: true" },
+  -- ActiveRecord querying (chainable + finders)
+  { word = "where", detail = "AR: where(cond)", doc = "where(published: true).order(created_at: :desc)" },
+  { word = "order", detail = "AR: order(...)", doc = "order(created_at: :desc)" },
+  { word = "limit", detail = "AR: limit(n)", doc = "limit(10)" },
+  { word = "offset", detail = "AR: offset(n)", doc = "offset(20)" },
+  { word = "select", detail = "AR: select(...)", doc = "select(:id, :name)" },
+  { word = "distinct", detail = "AR: distinct", doc = "distinct.pluck(:email)" },
+  { word = "group", detail = "AR: group(...)", doc = "group(:status).count" },
+  { word = "having", detail = "AR: having(...)", doc = "group(:s).having('count(*) > 1')" },
+  { word = "joins", detail = "AR: joins(...)", doc = "joins(:posts)" },
+  { word = "left_joins", detail = "AR: left_joins(...)", doc = "left_joins(:posts)" },
+  { word = "includes", detail = "AR: includes(...)", doc = "includes(:posts)" },
+  { word = "preload", detail = "AR: preload(...)", doc = "preload(:posts)" },
+  { word = "eager_load", detail = "AR: eager_load(...)", doc = "eager_load(:posts)" },
+  { word = "references", detail = "AR: references(...)", doc = "includes(:posts).references(:posts)" },
+  { word = "find", detail = "AR: find(id)", doc = "find(params[:id])" },
+  { word = "find_by", detail = "AR: find_by(...)", doc = "find_by(email: params[:email])" },
+  { word = "find_or_create_by", detail = "AR: find_or_create_by", doc = "find_or_create_by(email: e)" },
+  { word = "find_or_initialize_by", detail = "AR: find_or_initialize_by", doc = "find_or_initialize_by(email: e)" },
+  { word = "first_or_create", detail = "AR: first_or_create", doc = "where(email: e).first_or_create" },
+  { word = "pluck", detail = "AR: pluck(...)", doc = "pluck(:id, :email)" },
+  { word = "pick", detail = "AR: pick(...)", doc = "pick(:email)" },
+  { word = "ids", detail = "AR: ids", doc = "where(active: true).ids" },
+  { word = "create", detail = "AR: create(...)", doc = "create(name: name)" },
+  { word = "save", detail = "AR: save", doc = "save" },
+  { word = "update", detail = "AR: update(...)", doc = "update(name: name)" },
+  { word = "destroy", detail = "AR: destroy", doc = "destroy" },
+  { word = "reload", detail = "AR: reload", doc = "reload" },
+  -- ActiveRecord model macros
+  { word = "alias_attribute", detail = "Rails: alias_attribute", doc = "alias_attribute :name, :full_name" },
+  { word = "default_scope", detail = "Rails: default_scope", doc = "default_scope { order(created_at: :desc) }" },
+  { word = "has_secure_password", detail = "Rails: has_secure_password", doc = "has_secure_password" },
+  { word = "has_secure_token", detail = "Rails: has_secure_token", doc = "has_secure_token :auth_token" },
+  { word = "has_one_attached", detail = "ActiveStorage", doc = "has_one_attached :avatar" },
+  { word = "has_many_attached", detail = "ActiveStorage", doc = "has_many_attached :files" },
+  { word = "has_rich_text", detail = "ActionText", doc = "has_rich_text :body" },
+  { word = "normalizes", detail = "Rails 7.1: normalizes", doc = "normalizes :email, with: ->(e) { e.strip.downcase }" },
+  { word = "encrypts", detail = "Rails 7: encrypts", doc = "encrypts :api_key" },
+  { word = "transaction", detail = "AR: transaction", doc = "transaction do … end" },
+  -- Controllers
+  { word = "render", detail = "Controller: render", doc = "render :show  # or render json: @user" },
+  { word = "redirect_to", detail = "Controller: redirect_to", doc = "redirect_to @post, notice: 'Saved'" },
+  { word = "head", detail = "Controller: head", doc = "head :no_content" },
+  { word = "params", detail = "Controller: params", doc = "params[:id] / params.require(:post).permit(:title)" },
+  { word = "session", detail = "Controller: session", doc = "session[:user_id]" },
+  { word = "cookies", detail = "Controller: cookies", doc = "cookies[:theme]" },
+  { word = "flash", detail = "Controller: flash", doc = "flash[:notice] = 'Saved'" },
+  { word = "request", detail = "Controller: request", doc = "request.remote_ip" },
+  { word = "helper_method", detail = "Controller: helper_method", doc = "helper_method :current_user" },
+  { word = "respond_to", detail = "Controller: respond_to", doc = "respond_to :html, :json" },
+  { word = "protect_from_forgery", detail = "Controller", doc = "protect_from_forgery with: :exception" },
+  { word = "skip_forgery_protection", detail = "Controller", doc = "skip_forgery_protection only: :webhook" },
+  { word = "permit", detail = "Strong params: permit", doc = "params.require(:post).permit(:title, :body)" },
+  -- Routes (config/routes.rb)
+  { word = "resources", detail = "Routes: resources", doc = "resources :posts" },
+  { word = "resource", detail = "Routes: resource", doc = "resource :profile, only: :show" },
+  { word = "root", detail = "Routes: root", doc = 'root "posts#index"' },
+  { word = "get", detail = "Routes: get", doc = 'get "search", to: "pages#search"' },
+  { word = "post", detail = "Routes: post", doc = 'post "checkout", to: "orders#create"' },
+  { word = "put", detail = "Routes: put", doc = 'put "avatar", to: "users#update"' },
+  { word = "patch", detail = "Routes: patch", doc = 'patch "avatar", to: "users#update"' },
+  { word = "delete", detail = "Routes: delete", doc = 'delete "logout", to: "sessions#destroy"' },
+  { word = "namespace", detail = "Routes: namespace", doc = "namespace :admin do … end" },
+  { word = "member", detail = "Routes: member", doc = "member { post :publish }" },
+  { word = "collection", detail = "Routes: collection", doc = "collection { get :search }" },
+  { word = "concern", detail = "Routes: concern", doc = "concern :commentable do … end" },
+  { word = "concerns", detail = "Routes: concerns", doc = "resources :posts, concerns: :commentable" },
+  { word = "mount", detail = "Routes: mount", doc = "mount Sidekiq::Web => '/sidekiq'" },
+  -- Migrations (extra)
+  { word = "change_column", detail = "Migration", doc = "change_column :posts, :title, :text" },
+  { word = "rename_column", detail = "Migration", doc = "rename_column :posts, :name, :title" },
+  { word = "rename_table", detail = "Migration", doc = "rename_table :posts, :articles" },
+  { word = "remove_index", detail = "Migration", doc = "remove_index :posts, :slug" },
+  { word = "remove_reference", detail = "Migration", doc = "remove_reference :posts, :user" },
+  { word = "remove_foreign_key", detail = "Migration", doc = "remove_foreign_key :posts, :users" },
+  { word = "add_timestamps", detail = "Migration", doc = "add_timestamps :posts" },
+  { word = "remove_timestamps", detail = "Migration", doc = "remove_timestamps :posts" },
+  { word = "reversible", detail = "Migration", doc = "reversible do |dir| … end" },
+  { word = "enable_extension", detail = "Migration", doc = 'enable_extension "pgcrypto"' },
+  { word = "create_join_table", detail = "Migration", doc = "create_join_table :posts, :tags" },
+  { word = "drop_table", detail = "Migration", doc = "drop_table :posts" },
+  { word = "change_column_null", detail = "Migration", doc = "change_column_null :posts, :title, false" },
+  -- Jobs / Mailers
+  { word = "queue_as", detail = "Job: queue_as", doc = "queue_as :default" },
+  { word = "perform_later", detail = "Job: perform_later", doc = "MyJob.perform_later(arg)" },
+  { word = "deliver_later", detail = "Mailer: deliver_later", doc = "UserMailer.welcome(u).deliver_later" },
+  { word = "deliver_now", detail = "Mailer: deliver_now", doc = "UserMailer.welcome(u).deliver_now" },
+  { word = "mail", detail = "Mailer: mail", doc = "mail to: user.email, subject: 'Hi'" },
+  { word = "layout", detail = "Mailer: layout", doc = "layout 'mailer'" },
+  -- RSpec
+  { word = "describe", detail = "RSpec: describe", doc = "describe User do … end" },
+  { word = "context", detail = "RSpec: context", doc = 'context "when invalid" do … end' },
+  { word = "it", detail = "RSpec: it", doc = 'it "works" do … end' },
+  { word = "expect", detail = "RSpec: expect", doc = "expect(user).to be_valid" },
+  { word = "allow", detail = "RSpec: allow", doc = "allow(obj).to receive(:method)" },
+  { word = "receive", detail = "RSpec: receive", doc = "expect(obj).to have_received(:method)" },
+  { word = "before", detail = "RSpec: before", doc = "before { sign_in user }" },
+  { word = "after", detail = "RSpec: after", doc = "after { cleanup }" },
+  { word = "let", detail = "RSpec: let", doc = "let(:user) { create(:user) }" },
+  { word = "subject", detail = "RSpec: subject", doc = "subject(:user) { create(:user) }" },
+  { word = "shared_examples", detail = "RSpec", doc = 'shared_examples "auditable" do … end' },
+  { word = "it_behaves_like", detail = "RSpec", doc = 'it_behaves_like "auditable"' },
+  -- FactoryBot
+  { word = "factory", detail = "FactoryBot", doc = "factory :user do … end" },
+  { word = "trait", detail = "FactoryBot", doc = "trait :admin do … end" },
+  { word = "sequence", detail = "FactoryBot", doc = "sequence(:email) { |n| \"u#{n}@x.com\" }" },
+  { word = "association", detail = "FactoryBot", doc = "association :author" },
+  -- Ruby extras
+  { word = "raise", detail = "Ruby: raise", doc = 'raise "boom"' },
+  { word = "yield", detail = "Ruby: yield", doc = "yield(arg) if block_given?" },
+  { word = "super", detail = "Ruby: super", doc = "super" },
+  { word = "lambda", detail = "Ruby: lambda", doc = "lambda { |x| x }" },
+  { word = "proc", detail = "Ruby: proc", doc = "proc { |x| x }" },
+  { word = "private_constant", detail = "Ruby", doc = "private_constant :SECRET" },
+  { word = "module_function", detail = "Ruby", doc = "module_function :helper" },
+}
+
+-- Association / validation option keys: `belongs_to :x, class_name:` etc.
+-- These are bare words before the colon, so they never come from the
+-- `def`-scan above and ruby-lsp often misses them mid-line while typing.
+local RAILS_OPTIONS = {
+  -- Association options
+  { word = "class_name", detail = "Rails opt: class_name:", doc = "belongs_to :author, class_name: 'User'" },
+  { word = "foreign_key", detail = "Rails opt: foreign_key:", doc = "belongs_to :author, foreign_key: :user_id" },
+  { word = "primary_key", detail = "Rails opt: primary_key:", doc = "has_many :posts, primary_key: :uuid" },
+  { word = "dependent", detail = "Rails opt: dependent:", doc = "has_many :posts, dependent: :destroy" },
+  { word = "through", detail = "Rails opt: through:", doc = "has_many :tags, through: :taggings" },
+  { word = "source", detail = "Rails opt: source:", doc = "has_many :followers, through: :follows, source: :user" },
+  { word = "source_type", detail = "Rails opt: source_type:", doc = "has_many :assets, through: :attachables, source_type: 'Image'" },
+  { word = "optional", detail = "Rails opt: optional:", doc = "belongs_to :team, optional: true" },
+  { word = "required", detail = "Rails opt: required:", doc = "belongs_to :team, required: true" },
+  { word = "polymorphic", detail = "Rails opt: polymorphic:", doc = "belongs_to :attachable, polymorphic: true" },
+  { word = "touch", detail = "Rails opt: touch:", doc = "belongs_to :post, touch: true" },
+  { word = "counter_cache", detail = "Rails opt: counter_cache:", doc = "belongs_to :post, counter_cache: true" },
+  { word = "inverse_of", detail = "Rails opt: inverse_of:", doc = "has_many :posts, inverse_of: :author" },
+  { word = "autosave", detail = "Rails opt: autosave:", doc = "has_one :profile, autosave: true" },
+  { word = "validate", detail = "Rails opt: validate:", doc = "has_many :posts, validate: false" },
+  { word = "as", detail = "Rails opt: as:", doc = "has_many :pictures, as: :imageable" },
+  -- Validation / common kwargs
+  { word = "presence", detail = "Rails opt: presence:", doc = "validates :name, presence: true" },
+  { word = "uniqueness", detail = "Rails opt: uniqueness:", doc = "validates :email, uniqueness: true" },
+  { word = "inclusion", detail = "Rails opt: inclusion:", doc = "validates :role, inclusion: { in: %w[admin user] }" },
+  { word = "exclusion", detail = "Rails opt: exclusion:", doc = "validates :subdomain, exclusion: { in: %w[www] }" },
+  { word = "format", detail = "Rails opt: format:", doc = "validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }" },
+  { word = "length", detail = "Rails opt: length:", doc = "validates :bio, length: { maximum: 500 }" },
+  { word = "numericality", detail = "Rails opt: numericality:", doc = "validates :age, numericality: { greater_than: 0 }" },
+  { word = "confirmation", detail = "Rails opt: confirmation:", doc = "validates :password, confirmation: true" },
+  { word = "acceptance", detail = "Rails opt: acceptance:", doc = "validates :terms, acceptance: true" },
+  { word = "allow_nil", detail = "Rails opt: allow_nil:", doc = "validates :nick, length: { is: 3 }, allow_nil: true" },
+  { word = "allow_blank", detail = "Rails opt: allow_blank:", doc = "validates :bio, length: { maximum: 500 }, allow_blank: true" },
+  { word = "on", detail = "Rails opt: on:", doc = "validate :check, on: :create" },
+  { word = "if", detail = "Rails opt: if:", doc = "validates :code, presence: true, if: :active?" },
+  { word = "unless", detail = "Rails opt: unless:", doc = "validates :code, presence: true, unless: :archived?" },
+  { word = "message", detail = "Rails opt: message:", doc = "validates :email, presence: { message: 'required' }" },
+  { word = "with", detail = "Rails opt: with:", doc = "validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }" },
+  { word = "minimum", detail = "Rails opt: minimum:", doc = "validates :bio, length: { minimum: 10 }" },
+  { word = "maximum", detail = "Rails opt: maximum:", doc = "validates :bio, length: { maximum: 500 }" },
+  { word = "too_long", detail = "Rails opt: too_long:", doc = "validates :bio, length: { maximum: 500, too_long: 'too long' }" },
+  { word = "too_short", detail = "Rails opt: too_short:", doc = "validates :pwd, length: { minimum: 8, too_short: 'too short' }" },
+  { word = "greater_than", detail = "Rails opt: greater_than:", doc = "validates :age, numericality: { greater_than: 0 }" },
+  { word = "less_than", detail = "Rails opt: less_than:", doc = "validates :age, numericality: { less_than: 150 }" },
+  { word = "only_integer", detail = "Rails opt: only_integer:", doc = "validates :qty, numericality: { only_integer: true }" },
+  { word = "only", detail = "Rails opt: only:", doc = "before_action :auth, only: :index" },
+  { word = "except", detail = "Rails opt: except:", doc = "before_action :auth, except: :show" },
+  { word = "to", detail = "Rails opt: to:", doc = "delegate :email, to: :user" },
+  { word = "prefix", detail = "Rails opt: prefix:", doc = "delegate :email, to: :user, prefix: true" },
+  { word = "coder", detail = "Rails opt: coder:", doc = "serialize :tags, coder: JSON" },
 }
 
 -- bufnr integers get reused after :wq + reopen; drop stale entries.
@@ -199,8 +372,11 @@ local function buffer_def_names()
     return nil
   end
   local names = {}
-  for _, def in ipairs(result.defs) do
+  for _, def in ipairs(result.defs or {}) do
     names[def.name] = true
+  end
+  for _, cls in ipairs(result.classes or {}) do
+    names[cls.name] = true
   end
   return names, vim.fs.basename(vim.api.nvim_buf_get_name(buf))
 end
@@ -247,7 +423,8 @@ function M.new()
 end
 
 function M:enabled()
-  return ok_query and vim.bo.filetype == "ruby"
+  local ft = vim.bo.filetype
+  return ok_query and (ft == "ruby" or ft == "eruby")
 end
 
 function M:get_completions(ctx, callback)
@@ -290,6 +467,21 @@ function M:get_completions(ctx, callback)
           }
         end
       end
+      for _, cls in ipairs(result.classes or {}) do
+        -- Model / constant names: completes `class_name: 'User'`
+        -- string values as well as bare `User.new` references.
+        if cls.name and not seen_names[cls.name] then
+          seen_names[cls.name] = true
+          items[#items + 1] = {
+            label = cls.name,
+            kind = vim.lsp.protocol.CompletionItemKind.Class,
+            detail = origin and ("class " .. cls.name .. " (" .. origin .. ")") or ("class " .. cls.name),
+            labelDetails = origin and { description = origin } or nil,
+            insertText = cls.name,
+            insertTextFormat = vim.lsp.protocol.InsertTextFormat.PlainText,
+          }
+        end
+      end
       for _, req in ipairs(result.requires or {}) do
         local path = req.path and resolve(req, file_dir, root)
         if path and not visited[path] then
@@ -319,6 +511,21 @@ function M:get_completions(ctx, callback)
           detail = dsl.detail,
           documentation = dsl.doc,
           insertText = dsl.word,
+          insertTextFormat = vim.lsp.protocol.InsertTextFormat.PlainText,
+        }
+      end
+    end
+    for _, opt in ipairs(RAILS_OPTIONS) do
+      -- Option keys always take `key: value`, so accepting the item
+      -- inserts the trailing colon + space, ready for the value.
+      if not seen_names[opt.word] then
+        seen_names[opt.word] = true
+        items[#items + 1] = {
+          label = opt.word,
+          kind = Keyword,
+          detail = opt.detail,
+          documentation = opt.doc,
+          insertText = opt.word .. ": ",
           insertTextFormat = vim.lsp.protocol.InsertTextFormat.PlainText,
         }
       end

@@ -38,7 +38,10 @@ return {
         signature = { enabled = false },
         sources = {
           default = { "lsp", "path", "snippets", "buffer" },
-          per_filetype = { ruby = { inherit_defaults = true, "ruby_defs" } },
+          per_filetype = {
+            ruby = { inherit_defaults = true, "ruby_defs" },
+            eruby = { inherit_defaults = true, "ruby_defs" },
+          },
           providers = {
             lsp = {
               max_items = 20,
@@ -54,7 +57,9 @@ return {
               -- Instant treesitter scan: show after 1 char so fresh defs
               -- appear immediately after :w / reopen, without LSP index wait.
               min_keyword_length = 1,
-              max_items = 20,
+              -- Static Rails DSL (~200 items); blink fuzzy-sorts before
+              -- truncating, so a typed prefix still ranks correctly.
+              max_items = 50,
             },
             snippets = { max_items = 10 },
             buffer = {
