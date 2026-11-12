@@ -75,7 +75,9 @@ return {
         },
         cmdline = {
           keymap = { preset = "cmdline" },
-          completion = { menu = { auto_show = true, border = "single" } },
+          -- NOTE: cmdline.completion.menu only supports auto_show + draw;
+          -- border is inherited from top-level completion.menu.border.
+          completion = { menu = { auto_show = true } },
         },
       })
     end,

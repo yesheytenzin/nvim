@@ -28,11 +28,35 @@ return {
       {
         "<leader>ha",
         function()
-          if addable_buffer() then
-            harpoon_list():add()
+          if not addable_buffer() then
+            return
+          end
+          -- No item cap: harpoon appends (and dedupes) without a limit.
+          local list = harpoon_list()
+          local before = list:length()
+          list:add()
+          local after = list:length()
+          if after > before then
+            vim.notify(string.format("Harpoon: marked #%d (%d total)", after, after))
+          else
+            vim.notify("Harpoon: already marked")
           end
         end,
-        desc = "Harpoon add",
+        desc = "Harpoon add (no limit)",
+      },
+      {
+        "<leader>hn",
+        function()
+          harpoon_list():next({ ui_nav_wrap = true })
+        end,
+        desc = "Harpoon next (wraps around)",
+      },
+      {
+        "<leader>hp",
+        function()
+          harpoon_list():prev({ ui_nav_wrap = true })
+        end,
+        desc = "Harpoon prev (wraps around)",
       },
       {
         "<leader>hm",
